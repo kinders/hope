@@ -1,0 +1,19 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  receiver_id: 1
+  content: MyText
+  is_finish: false
+  is_top: false
+  group: one
+  deleted_at: 2017-02-15 10:10:53
+
+two:
+  user: two
+  receiver_id: 1
+  content: MyText
+  is_finish: false
+  is_top: false
+  group: two
+  deleted_at: 2017-02-15 10:10:53

@@ -1,0 +1,25 @@
+Rails.application.routes.draw do
+  post 'login', to: 'sessions#login'
+  post 'notify', to: 'sessions#notify'
+  post 'home', to: 'sessions#home'
+  post 'dones', to: 'sessions#dones'
+  post 'helpeds', to: 'sessions#helpeds'
+  post 'friend', to: 'sessions#friend'
+  post 'group_helps', to: 'sessions#group_helps'
+  post 'helps_in_grouptodo', to: 'sessions#helps_in_grouptodo'
+  post 'new_friend', to: 'sessions#new_friend'
+  post 'accept_friend', to: 'sessions#accept_friend'
+  post 'new_group', to: 'sessions#new_group'
+  post 'new_help_to_self', to: 'sessions#new_help_to_self'
+  post 'new_help_to_friend', to: 'sessions#new_help_to_friend'
+  post 'new_help_to_group', to: 'sessions#new_help_to_group'
+  post 'close_group_help', to: 'sessions#close_group_help'
+  post 'close_help', to: 'sessions#close_help'
+  post 'rehelp', to: 'sessions#rehelp'
+  post 'todo', to: 'sessions#todo'
+  post 'new_discussion', to: 'sessions#new_discussion'
+  post 'set_todo_top', to: 'sessions#set_todo_top'
+  post 'set_todo_notop', to: 'sessions#set_todo_notop'
+
+  # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
+end

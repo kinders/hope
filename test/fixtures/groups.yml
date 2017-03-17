@@ -1,0 +1,13 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  name: MyString
+  friends_id: MyString
+  deleted_at: 2017-02-15 10:09:14
+
+two:
+  user: two
+  name: MyString
+  friends_id: MyString
+  deleted_at: 2017-02-15 10:09:14
