@@ -19,3 +19,9 @@
 
 # Ignore Byebug command history file.
 .byebug_history
+
+# 忽略vim的ses文件
+.ses
+
+# 忽略构思草稿
+hope.ods

@@ -1,6 +1,7 @@
 require 'test_helper'
 
-class SessionsControllerTest < ActionDispatch::IntegrationTest
+class WechatLittleAppControllerTest < ActionDispatch::IntegrationTest
+# class SessionsControllerTest < ActionDispatch::IntegrationTest
 
 =begin
   test "should get login" do

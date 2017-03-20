@@ -1,3 +1,12 @@
+GIT
+  remote: https://github.com/kinders/wx_pay.git
+  revision: ffc66964ca91362c557e7500b3c98596bad3414b
+  branch: kinders-patch-1
+  specs:
+    wx_pay (0.14.2)
+      activesupport (>= 3.2)
+      rest-client (>= 1.7)
+
 GEM
   remote: https://ruby.taobao.org/
   specs:
@@ -42,7 +51,7 @@ GEM
     builder (3.2.3)
     byebug (9.0.6)
     concurrent-ruby (1.0.4)
-    domain_name (0.5.20161129)
+    domain_name (0.5.20170223)
       unf (>= 0.0.5, < 1.0.0)
     erubis (2.7.0)
     ffi (1.9.17)
@@ -106,7 +115,7 @@ GEM
     rb-inotify (0.9.8)
       ffi (>= 0.5.0)
     redis (3.3.1)
-    rest-client (2.0.0)
+    rest-client (2.0.1)
       http-cookie (>= 1.0.2, < 2.0)
       mime-types (>= 1.16, < 4.0)
       netrc (~> 0.8)
@@ -133,9 +142,6 @@ GEM
     websocket-driver (0.6.5)
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.2)
-    wx_pay (0.14.1)
-      activesupport (>= 3.2)
-      rest-client (>= 1.7)
 
 PLATFORMS
   ruby
@@ -152,7 +158,7 @@ DEPENDENCIES
   spring-watcher-listen (~> 2.0.0)
   sqlite3
   tzinfo-data
-  wx_pay
+  wx_pay!
 
 BUNDLED WITH
    1.12.5
