@@ -7,3 +7,5 @@ class Grouptodo < ApplicationRecord
 end
 # user_id	references	所有者	
 # group_id references	朋友圈
+# content text 请求的内容
+# is_finish boolean 是否关闭

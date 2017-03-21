@@ -1,7 +1,9 @@
-json.array! @groups_helps do |help|
-  json.helps_in_group do
-    json.id help.id
-    json.content help.content
-    json.created_at help.created_at
+json.array! @groups_helps do |grouptodo|
+  json.groups_helps do
+    json.id grouptodo.id
+    json.content grouptodo.content
+    json.group_id grouptodo.group_id
+    json.name grouptodo.group.name
+    json.created_at grouptodo.created_at
   end
 end

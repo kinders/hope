@@ -94,7 +94,7 @@ class WechatLittleAppController < ApplicationController # class SessionsControll
     @friendships = Friendship.where(user_id: @user.id).order(:nickname)
     # 我的朋友圈列表
     @groups = Group.where(user_id: @user.id).order(:name)
-    @group_helps = Grouptodo.where(user_id: @user.id, is_finish: false).order(id: :desc)
+    @groups_helps = Grouptodo.where(user_id: @user.id, is_finish: false).order(id: :desc)
   end
 
   # get other_todos 查看其他陌生人请我完成的任务
@@ -107,7 +107,7 @@ class WechatLittleAppController < ApplicationController # class SessionsControll
       return
     end
     @user = User.find_by(openid: cache_openid)
-    @other_todos = Todo.where(receiver_id: @user.id, is_finish: false).where.not(user_id: @user.friendships.pluck(:friend_id)).order(id: :desc).first(100)
+    @other_todos = Todo.where(receiver_id: @user.id, is_finish: false).where.not(user_id: @user.friendships.pluck(:friend_id)).order(discussions_count: :desc)
   end
 
   # get dones  查看我已经完成的任务
@@ -176,19 +176,6 @@ class WechatLittleAppController < ApplicationController # class SessionsControll
     @friends_in_group = User.where(user_id: @group.friends_id.split('_')).order(nickname)
   end
 
-  # get groups_helps 查看所有群的未被实现的群请求
-  # params: token group_id
-  def groups_helps
-    # 检查 token 是否过期
-    cache_openid = $redis.get(params[:token])
-    unless cache_openid
-      render json: {return_code: "bad token"}
-      return
-    end
-    @user = User.find_by(openid: cache_openid)
-    @groups_helps = Grouptodo.where(user_id: @user.id, group_id: params[:group_id], is_finish: false).order(id: :desc)
-  end
-
   # get group_helpeds 查看一个群里已经实现的群请求
   # params: token, group_id
   def group_helpeds
@@ -199,7 +186,7 @@ class WechatLittleAppController < ApplicationController # class SessionsControll
       return
     end
     @user = User.find_by(openid: cache_openid)
-    @groups_helpeds = Grouptodo.where(user_id: @user.id, group_id: params[:group_id], is_finish: true).order(id: :desc)
+    @group_helpeds = Grouptodo.where(user_id: @user.id, group_id: params[:group_id], is_finish: true).order(id: :desc)
   end
 
   # get group_helps 查看一个群里未实现的群请求
@@ -212,7 +199,7 @@ class WechatLittleAppController < ApplicationController # class SessionsControll
       return
     end
     @user = User.find_by(openid: cache_openid)
-    @groups_helps = Grouptodo.where(user_id: @user.id, group_id: params[:group_id], is_finish: false).order(id: :desc)
+    @group_helps = Grouptodo.where(user_id: @user.id, group_id: params[:group_id], is_finish: false).order(id: :desc)
   end
 
   # get helps_in_grouptodo 查看群请求完成情况
@@ -466,6 +453,10 @@ class WechatLittleAppController < ApplicationController # class SessionsControll
     end
     @user = User.find_by(openid: cache_openid)
     @discussion = Discussion.create(user_id: @user.id, todo_id: params[:todo_id], content: params[:content])
+    @todo = Todo.find_by(id: params[:todo_id])
+    count = @todo.discussions_count
+    count = count + 1
+    @todo.update(discussions_count: count)
     render json: {id: @discussion.id}
   end
 

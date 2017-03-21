@@ -10,6 +10,6 @@ end
 # grouptodo_id	references	群任务	方便群发愿望
 # content	text	内容	一旦出现讨论，则内容无法更改。
 # is_finish	boolean	是否关闭	是否关闭由所有者决定
-# is_top	boolean	优先级	优先级由愿望接收者设置
+# discussions_count integer 讨论的数量，默认为0
 # deleted_at	datetime	删除时间	
 

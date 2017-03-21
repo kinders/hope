@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170217072532) do
+ActiveRecord::Schema.define(version: 20170321003511) do
 
   create_table "discussions", force: :cascade do |t|
     t.integer  "user_id"
@@ -79,12 +79,12 @@ ActiveRecord::Schema.define(version: 20170217072532) do
     t.integer  "user_id"
     t.integer  "receiver_id"
     t.text     "content"
-    t.boolean  "is_top"
     t.datetime "deleted_at"
-    t.datetime "created_at",   null: false
-    t.datetime "updated_at",   null: false
+    t.datetime "created_at",                    null: false
+    t.datetime "updated_at",                    null: false
     t.integer  "grouptodo_id"
     t.boolean  "is_finish"
+    t.integer  "discussions_count", default: 0
     t.index ["deleted_at"], name: "index_todos_on_deleted_at"
     t.index ["grouptodo_id"], name: "index_todos_on_grouptodo_id"
     t.index ["user_id"], name: "index_todos_on_user_id"

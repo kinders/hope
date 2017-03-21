@@ -1,6 +1,7 @@
 class Group < ApplicationRecord
   belongs_to :user
   has_many :todos
+  has_many :grouptodos
   acts_as_paranoid
   validates :user_id, :name, :friends_id, presence: true
 end
