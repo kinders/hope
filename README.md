@@ -1,24 +1,3 @@
-# README
+# 希望
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
-
-Things you may want to cover:
-
-* Ruby version
-
-* System dependencies
-
-* Configuration
-
-* Database creation
-
-* Database initialization
-
-* How to run the test suite
-
-* Services (job queues, cache servers, search engines, etc.)
-
-* Deployment instructions
-
-* ...
+“希望”是一个 API 小程序，专门服务于同名的微信小程序（小程序将在不久的未来上线）。

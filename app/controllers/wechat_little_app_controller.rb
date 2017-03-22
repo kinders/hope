@@ -1,4 +1,9 @@
-class WechatLittleAppController < ApplicationController # class SessionsController < ApplicationController
+class WechatLittleAppController < ApplicationController
+
+  # get hello 首页，可用于测试服务是否正常
+  def hello
+    render plain: '“希望”小程序即将上线，敬请期待'
+  end
 
   # post login 登录系统，取出token
   # params js_code

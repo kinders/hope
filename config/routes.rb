@@ -26,6 +26,6 @@ Rails.application.routes.draw do
   post 'rehelp', to: 'wechat_little_app#rehelp'
   get 'todo', to: 'wechat_little_app#todo'
   post 'new_discussion', to: 'wechat_little_app#new_discussion'
-
+  root 'wechat_little_app#hello'
   # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
 end
