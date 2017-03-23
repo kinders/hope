@@ -8,6 +8,6 @@ json.array! @dones do |done|
       json.nickname done.user.nickname
     end
     json.content done.content
-    json.created_at done.created_at
+    json.created_at done.created_at.strftime("%F %T")
   end
 end

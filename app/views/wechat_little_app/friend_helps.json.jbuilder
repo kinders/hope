@@ -8,6 +8,6 @@ json.array! @friend_helps do |friend_help|
       json.nickname User.find_by(id: friend_help.receiver_id).nickname
     end
     json.content friend_help.content
-    json.created_at friend_help.created_at
+    json.created_at friend_help.created_at.strftime("%F %T")
   end
 end

@@ -5,7 +5,7 @@ json.array! @todos do |todo|
     json.user_id todo.user_id
     friendship = Friendship.find_by(user_id: @user.id, friend_id: todo.user_id)
     json.nickname friendship.nickname
-    json.created_at todo.created_at
+    json.created_at todo.created_at.strftime("%F %T")
   end
 end
 json.array! @helps do |help|
@@ -18,7 +18,7 @@ json.array! @helps do |help|
     else
       json.nickname User.find_by(id: help.receiver_id).nickname
     end
-    json.created_at help.created_at
+    json.created_at help.created_at.strftime("%F %T")
   end
 end
 json.array! @friendships do |friendship|
@@ -38,6 +38,6 @@ json.array! @groups_helps do |groups_help|
     json.content groups_help.content
     json.group_id groups_help.group_id
     json.name groups_help.group.name
-    json.created_at groups_help.created_at
+    json.created_at groups_help.created_at.strftime("%F %T")
   end
 end
