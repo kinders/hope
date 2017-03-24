@@ -2,7 +2,7 @@ class WechatLittleAppController < ApplicationController
 
   # get hello 首页，可用于测试服务是否正常
   def hello
-    render plain: '“希望”小程序即将上线，敬请期待'
+    render plain: '“希望”小程序的后台API已经准备就绪——前端程序也将在不久之后上线，敬请期待！' + Time.now.strftime("%F %T") 
   end
 
   # post login 登录系统，取出token
@@ -264,7 +264,7 @@ class WechatLittleAppController < ApplicationController
     end
   end
 
-  # post new_group 新建朋友圈
+  # post new_group 新建朋友群
   # params: token friends_id name
   def new_group
     # 检查 token 是否过期
@@ -290,6 +290,25 @@ class WechatLittleAppController < ApplicationController
     else
       @new_group = Group.create(user_id: @user.id, name: params[:name], friends_id: friends_id_params.join(','))
       render json: {group_id: @new_group.id}
+    end
+  end
+
+  # post delete_group 删除朋友群
+  # 参数：token, group_id
+  def delete_group
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {return_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    @group = Group.find_by(user_id: @user.id, group_id: params[:group_id])
+    if @group
+      @group.destroy
+      render json: {result_code: "t"}
+    else
+      render json: {result_code: "f", msg: '没有这个朋友圈'}
     end
   end
 
@@ -367,6 +386,7 @@ class WechatLittleAppController < ApplicationController
     end
     if @friendship.friend_id == @user.id
       @user.update(nickname: params[:nickname])
+      @friendship.update(nickname: params[:nickname])
       render json: {result_code: 't'}
     elsif
       @friendship.update(nickname: params[:nickname])
