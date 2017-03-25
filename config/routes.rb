@@ -6,6 +6,7 @@ Rails.application.routes.draw do
   get 'other_todos', to: 'wechat_little_app#other_todos'
   get 'dones', to: 'wechat_little_app#dones'
   get 'helpeds', to: 'wechat_little_app#helpeds'
+  get 'strangers', to: 'wechat_little_app#strangers'
   get 'friend', to: 'wechat_little_app#friend'
   get 'friend_todos', to: 'wechat_little_app#friend_todos'
   get 'friend_helps', to: 'wechat_little_app#friend_helps'

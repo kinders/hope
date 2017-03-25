@@ -141,6 +141,19 @@ class WechatLittleAppController < ApplicationController
     @helpeds = Todo.where(user_id: @user.id, is_finish: true).order(id: :desc)
   end
 
+  # get strangers 查看与我有联系的陌生人
+  # params token
+  def strangers
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {return_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    @strangers = Friendship.where(friend_id: @user.id).order(:nickname)
+  end
+
   # get friend 查看朋友主页——未实现的任务
   # params: token friend_id
   def friend_todos
