@@ -2,24 +2,25 @@ class WechatLittleAppController < ApplicationController
 
   # get hello 首页，可用于测试服务是否正常
   def hello
-    render plain: '“希望”小程序的后台API已经准备就绪——前端程序也将在不久之后上线，敬请期待！' + Time.now.strftime("%F %T") 
+    render plain: '“希望协作”小程序的后台API已经准备就绪——前端程序也将在不久之后上线，敬请期待！' + Time.now.strftime("%F %T") 
   end
 
   # post login 登录系统，取出token
   # params js_code
   def login
     js_code = params[:js_code]
-    wx_user = WxPay::service.authenticate_from_weapp(js_code)
-    @user = User.find_by(openid: wx_user[openid])
+    wx_user = WxPay::Service.authenticate_from_weapp(js_code)
+    @user = User.find_by(openid: wx_user["openid"])
     token = SecureRandom.uuid.tr('-', '')
     unless @user
-      @user.create(openid: wx_user[openid], end_time: Time.now + (60*60*24*30))
+      @user.create(openid: wx_user["openid"], nickname: '未设置', end_time: Time.now + (60*60*24*10))
+      Friendship.create(user_id: @user.id, friend_id: @user.id, nickname: @user.nickname)
     end
     # 检查有效登录时限，超过时限则发起微信支付
     if @user.end_time > Time.now
       # 写入缓存
-      # $redis.set(token, wx_user[session_key] + "DELIMITER" + wx_user[openid])
-      $redis.set(token, wx_user[openid])  # 因为不想解密那些敏感信息，就不来存储会话密钥了。
+      # $redis.set(token, wx_user["session_key"] + "DELIMITER" + wx_user["openid"])
+      $redis.set(token, wx_user["openid"])  # 因为不想解密那些敏感信息，就不来存储会话密钥了。
       # 转到 我的任务 页面
       render json: {result_code: "t", token: token, current_user: {id: @user.id, nickname: @user.nickname, end_time: @user.end_time}}
     else
@@ -49,8 +50,8 @@ class WechatLittleAppController < ApplicationController
     uo_result = WxPay::Service.invoke_unifiedorder pay_params # 统一下单，返回prepay_id等字段组成的散列表
   # required fields
   req_params = {
-    prepay_id: uo_result[:prepay_id],
-    noncestr:  uo_result[:noncestr]
+    prepay_id: uo_result["prepay_id"],
+    noncestr:  uo_result["noncestr"]
   }
   # call generate_js_pay_req
   r = WxPay::Service.generate_js_pay_req req_params
@@ -72,9 +73,9 @@ class WechatLittleAppController < ApplicationController
   def notify
     result = Hash.from_xml(request.body.read)["xml"]
     if WxPay::Sign.verify?(result)
-      @user = User.find_by(openid: result[:openid])
-      Payment.create(user_id: @user.id, transaction_id: result[:transaction_id],total_fee: result[:total_fee],time_end: result[:time_end],result_code: result[:result_code])
-      @user.update(end_time: Time.now + (60*60*24*10*result[:total_fee]))
+      @user = User.find_by(openid: result["openid"])
+      Payment.create(user_id: @user.id, transaction_id: result["transaction_id"],total_fee: result["total_fee"],time_end: result["time_end"],result_code: result["result_code"])
+      @user.update(end_time: Time.now + (60*60*24*10*result["total_fee"]))
       render :xml => {return_code: "SUCCESS"}.to_xml(root: 'xml', dasherize: false)
     else
       render :xml => {return_code: "FAIL", return_msg: "签名失败"}.to_xml(root: 'xml', dasherize: false)
@@ -441,6 +442,25 @@ class WechatLittleAppController < ApplicationController
     if @todo
       @discussion = Discussion.create(user_id: @user.id, todo_id: @todo.id, content: "关闭请求，感谢帮助！")
       @todo.update(is_finish: true)
+      render json: {result_code: 't'}
+    else
+      render json: {result_code: 'f', message: "没有权限关闭任务"}
+    end
+  end
+
+  # post close_helps  关闭多个请求
+  # params token, grouptodo_id, friend_ids
+  def close_helps
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {return_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    @todos = Todo.where(grouptodo_id: params[:grouptodo_id], user_id: @user.id, friend_id: params[:friend_ids].split(','))
+    if @todos.any?
+      @todos.update_all(is_finish: true)
       render json: {result_code: 't'}
     else
       render json: {result_code: 'f', message: "没有权限关闭任务"}

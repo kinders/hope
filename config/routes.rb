@@ -24,6 +24,7 @@ Rails.application.routes.draw do
   post 'new_nickname', to: 'wechat_little_app#new_nickname'
   post 'close_group_help', to: 'wechat_little_app#close_group_help'
   post 'close_help', to: 'wechat_little_app#close_help'
+  post 'close_helps', to: 'wechat_little_app#close_helps'
   post 'rehelp', to: 'wechat_little_app#rehelp'
   get 'todo', to: 'wechat_little_app#todo'
   post 'new_discussion', to: 'wechat_little_app#new_discussion'
