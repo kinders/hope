@@ -39,10 +39,10 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     pay_params = {
-      body: '"希望"软件使用资费1元10天',          # 商品名称
-      out_trade_no: Time.now.to_s,   # 商户订单号
+      body: '希望协助-服务资费',          # 商品名称
+      out_trade_no: Time.now.to_i,   # 商户订单号
       total_fee: 1,              # 总金额
-      spbill_create_ip: '127.0.0.1',  # 终端IP
+      spbill_create_ip: params[:request].remote_ip(),  # 终端IP
       notify_url: 'https://my_site/notify', # 通知地址，是自己的路由
       trade_type: 'JSAPI', # could be "JSAPI", "NATIVE" or "APP",  交易类型
       openid: @user.openid # required when trade_type is `JSAPI` 用户开放编号
