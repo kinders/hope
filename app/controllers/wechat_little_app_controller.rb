@@ -22,7 +22,7 @@ class WechatLittleAppController < ApplicationController
       # $redis.set(token, wx_user["session_key"] + "DELIMITER" + wx_user["openid"])
       $redis.set(token, wx_user["openid"])  # 因为不想解密那些敏感信息，就不来存储会话密钥了。
       # 转到 我的任务 页面
-      render json: {result_code: "t", token: token, current_user: {id: @user.id, nickname: @user.nickname, end_time: @user.end_time}}
+      render json: {result_code: "t", token: token, current_user: {id: @user.id, nickname: @user.nickname, end_time: @user.end_time.strftime("%F %T")}}
     else
       render json: {result_code: "expired", msg: '超过使用期限，请先充值'}
     end
@@ -34,7 +34,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -43,7 +43,7 @@ class WechatLittleAppController < ApplicationController
       out_trade_no: Time.now.to_s,   # 商户订单号
       total_fee: 1,              # 总金额
       spbill_create_ip: '127.0.0.1',  # 终端IP
-      notify_url: 'http://my_site/notify', # 通知地址，是自己的路由
+      notify_url: 'https://my_site/notify', # 通知地址，是自己的路由
       trade_type: 'JSAPI', # could be "JSAPI", "NATIVE" or "APP",  交易类型
       openid: @user.openid # required when trade_type is `JSAPI` 用户开放编号
     }
@@ -76,9 +76,9 @@ class WechatLittleAppController < ApplicationController
       @user = User.find_by(openid: result["openid"])
       Payment.create(user_id: @user.id, transaction_id: result["transaction_id"],total_fee: result["total_fee"],time_end: result["time_end"],result_code: result["result_code"])
       @user.update(end_time: Time.now + (60*60*24*10*result["total_fee"]))
-      render :xml => {return_code: "SUCCESS"}.to_xml(root: 'xml', dasherize: false)
+      render :xml => {result_code: "SUCCESS"}.to_xml(root: 'xml', dasherize: false)
     else
-      render :xml => {return_code: "FAIL", return_msg: "签名失败"}.to_xml(root: 'xml', dasherize: false)
+      render :xml => {result_code: "FAIL", return_msg: "签名失败"}.to_xml(root: 'xml', dasherize: false)
     end
   end
 
@@ -88,7 +88,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -109,7 +109,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -122,7 +122,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -135,7 +135,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -148,7 +148,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -161,7 +161,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -174,7 +174,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -187,7 +187,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -201,7 +201,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -214,7 +214,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -227,7 +227,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -240,7 +240,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -265,7 +265,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -284,7 +284,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -313,7 +313,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -332,7 +332,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -348,7 +348,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -367,7 +367,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -389,7 +389,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -414,7 +414,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -434,7 +434,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -454,7 +454,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -473,7 +473,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)
@@ -493,7 +493,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @todo = Todo.find_by(id: params[:todo_id])
@@ -506,7 +506,7 @@ class WechatLittleAppController < ApplicationController
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
-      render json: {return_code: "bad token"}
+      render json: {result_code: "bad token"}
       return
     end
     @user = User.find_by(openid: cache_openid)

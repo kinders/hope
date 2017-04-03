@@ -1,5 +1,5 @@
-json.array! @friend_todos do |friend_todo|
-  json.friend_todos do
+json.friend_todos do
+  json.array! @friend_todos do |friend_todo|
     json.id friend_todo.id
     json.user_id friend_todo.user_id
     if friendship = Friendship.find_by(user_id: @user.id, friend_id: friend_todo.user_id)

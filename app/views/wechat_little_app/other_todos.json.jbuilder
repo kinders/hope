@@ -1,5 +1,5 @@
-json.array! @other_todos do |todo|
-  json.other_todos do
+json.other_todos do
+  json.array! @other_todos do |todo|
     json.id todo.id
     json.content todo.content
     json.user_id todo.user_id
