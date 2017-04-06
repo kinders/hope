@@ -1,4 +1,4 @@
-json.discussion do
+json.discussions do
   json.array! @discussions do |discussion|
     json.todo_id discussion.todo_id
     json.user_id discussion.user_id

@@ -2,7 +2,7 @@ class WechatLittleAppController < ApplicationController
 
   # get hello 首页，可用于测试服务是否正常
   def hello
-    render plain: '“希望协作”小程序的后台API已经准备就绪——前端程序也将在不久之后上线，敬请期待！' + Time.now.strftime("%F %T") 
+    render json: {hello: '“希望协作”小程序的后台API已经准备就绪——前端程序也将在不久之后上线，敬请期待！' + Time.now.strftime("%F %T")}
   end
 
   # post login 登录系统，取出token
@@ -14,7 +14,6 @@ class WechatLittleAppController < ApplicationController
     token = SecureRandom.uuid.tr('-', '')
     unless @user
       @user.create(openid: wx_user["openid"], nickname: '未设置', end_time: Time.now + (60*60*24*10))
-      Friendship.create(user_id: @user.id, friend_id: @user.id, nickname: @user.nickname)
     end
     # 检查有效登录时限，超过时限则发起微信支付
     if @user.end_time > Time.now
@@ -41,8 +40,8 @@ class WechatLittleAppController < ApplicationController
     pay_params = {
       body: '希望协助-服务资费',          # 商品名称
       out_trade_no: Time.now.to_i,   # 商户订单号
-      total_fee: 1,              # 总金额
-      spbill_create_ip: params[:request].remote_ip(),  # 终端IP
+      total_fee: 100,              # 总金额
+      spbill_create_ip: request.remote_ip(),  # 终端IP
       notify_url: 'https://my_site/notify', # 通知地址，是自己的路由
       trade_type: 'JSAPI', # could be "JSAPI", "NATIVE" or "APP",  交易类型
       openid: @user.openid # required when trade_type is `JSAPI` 用户开放编号
@@ -50,7 +49,7 @@ class WechatLittleAppController < ApplicationController
     uo_result = WxPay::Service.invoke_unifiedorder pay_params # 统一下单，返回prepay_id等字段组成的散列表
   # required fields
   req_params = {
-    prepay_id: uo_result["prepay_id"],
+    prepayid: uo_result["prepay_id"],
     noncestr:  uo_result["noncestr"]
   }
   # call generate_js_pay_req
@@ -82,9 +81,30 @@ class WechatLittleAppController < ApplicationController
     end
   end
 
-  # get home  主页数据
+  # get helps  主页数据，我的希望
   # params: token
-  def home
+  def helps
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    # 我的未完成任务列表（朋友的，不包括陌生人的）
+    # @todos = Todo.where(user_id: @user.friendships.pluck(:friend_id), receiver_id: @user.id, is_finish: false).order(id: :desc)
+    # 我提出的希望列表
+    @helps = Todo.where(user_id: @user.id, is_finish: false).order(id: :desc)
+    # 我的朋友列表
+    # @friendships = Friendship.where(user_id: @user.id).order(:nickname)
+    # 我的朋友圈列表
+    # @groups = Group.where(user_id: @user.id).order(:name)
+    # @groups_helps = Grouptodo.where(user_id: @user.id, is_finish: false).order(id: :desc)
+  end
+
+  # get todos  任务列表
+  # params: token
+  def todos
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
     unless cache_openid
@@ -94,13 +114,6 @@ class WechatLittleAppController < ApplicationController
     @user = User.find_by(openid: cache_openid)
     # 我的未完成任务列表（朋友的，不包括陌生人的）
     @todos = Todo.where(user_id: @user.friendships.pluck(:friend_id), receiver_id: @user.id, is_finish: false).order(id: :desc)
-    # 我提出的希望列表
-    @helps = Todo.where(user_id: @user.id, is_finish: false).order(id: :desc)
-    # 我的朋友列表
-    @friendships = Friendship.where(user_id: @user.id).order(:nickname)
-    # 我的朋友圈列表
-    @groups = Group.where(user_id: @user.id).order(:name)
-    @groups_helps = Grouptodo.where(user_id: @user.id, is_finish: false).order(id: :desc)
   end
 
   # get other_todos 查看其他陌生人请我完成的任务
@@ -126,7 +139,7 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @user = User.find_by(openid: cache_openid)
-    @dones = Todo.where(receiver_id: @user.id, is_finish: true).order(id: :desc)
+    @dones = Todo.where(receiver_id: @user.id, is_finish: true).where.not(user_id: @user.id).order(id: :desc)
   end
 
   # get helpeds  查看别人已经帮我实现的愿望
@@ -142,6 +155,19 @@ class WechatLittleAppController < ApplicationController
     @helpeds = Todo.where(user_id: @user.id, is_finish: true).order(id: :desc)
   end
 
+  # get groups_helps  朋友群请求列表
+  # params: token
+  def groups_helps
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    @groups_helps = Grouptodo.where(user_id: @user.id, is_finish: false).order(id: :desc)
+  end
+
   # get strangers 查看与我有联系的陌生人
   # params token
   def strangers
@@ -153,6 +179,19 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @strangers = Friendship.where(friend_id: @user.id).order(:nickname)
+  end
+
+  # get friends  朋友列表
+  # params: token
+  def friends
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    @friendships = Friendship.where(user_id: @user.id).order(:nickname)
   end
 
   # get friend 查看朋友主页——未实现的任务
@@ -179,6 +218,20 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @friend_helps = Todo.where(user_id: params[:friend_id], is_finish: false).order(id: :desc)
+  end
+
+  # get groups  群
+  # params: token
+  def groups
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    # 我的朋友圈列表
+    @groups = Group.where(user_id: @user.id).order(:name)
   end
 
   # get group 查看群成员
@@ -393,19 +446,18 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @user = User.find_by(openid: cache_openid)
+    if @user.id.to_s == params[:friend_id]
+      @user.update(nickname: params[:nickname])
+      render json: {result_code: 't'}
+      return
+    end
     @friendship = Friendship.find_by(user_id: @user.id, friend_id: params[:friend_id])
     unless @friendship
       render json: {msg: '您没有这个朋友'}
       return
     end
-    if @friendship.friend_id == @user.id
-      @user.update(nickname: params[:nickname])
-      @friendship.update(nickname: params[:nickname])
-      render json: {result_code: 't'}
-    elsif
-      @friendship.update(nickname: params[:nickname])
-      render json: {result_code: 't'}
-    end
+    @friendship.update(nickname: params[:nickname])
+    render json: {result_code: 't'}
   end
 
   # post close_group_help 关闭群请求 
@@ -496,8 +548,13 @@ class WechatLittleAppController < ApplicationController
       render json: {result_code: "bad token"}
       return
     end
+    @user = User.find_by(openid: cache_openid)
     @todo = Todo.find_by(id: params[:todo_id])
     @discussions = @todo.discussions
+    unless @discussions.any?
+      render json: {}
+      return
+    end
   end
 
   # post new_discussion  添加讨论
