@@ -26,12 +26,13 @@ Rails.application.routes.draw do
   post 'new_help_to_friend', to: 'wechat_little_app#new_help_to_friend'
   post 'new_help_to_group', to: 'wechat_little_app#new_help_to_group'
   post 'new_nickname', to: 'wechat_little_app#new_nickname'
-  post 'close_group_help', to: 'wechat_little_app#close_group_help'
+  post 'close_grouptodo', to: 'wechat_little_app#close_grouptodo'
   post 'close_help', to: 'wechat_little_app#close_help'
   post 'close_helps', to: 'wechat_little_app#close_helps'
   post 'rehelp', to: 'wechat_little_app#rehelp'
   get 'todo', to: 'wechat_little_app#todo'
   post 'new_discussion', to: 'wechat_little_app#new_discussion'
+  post 'new_group_discussion', to: 'wechat_little_app#new_group_discussion'
   root 'wechat_little_app#hello'
   # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
 end

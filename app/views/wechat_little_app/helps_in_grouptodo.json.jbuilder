@@ -5,8 +5,8 @@ json.helps_in_grouptodo do
     if friendship = Friendship.find_by(user_id: @user.id, friend_id: todo.receiver_id)
       json.nickname friendship.nickname
     else
-      json.nickname Use.find_by(id: todo.receiver_id).nickname
+      json.nickname User.find_by(id: todo.receiver_id).nickname
     end
-    json.is_finish helps_in_grouptodo.is_finish
+    json.is_finish todo.is_finish
   end
 end
