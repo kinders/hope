@@ -2,7 +2,8 @@ class WechatLittleAppController < ApplicationController
 
   # get hello 首页，可用于测试服务是否正常
   def hello
-    render json: {hello: '“希望协作”小程序的后台API已经准备就绪——前端程序也将在不久之后上线，敬请期待！' + Time.now.strftime("%F %T")}
+    render plain: ''
+    #render plain: '您好！欢迎使用“希望协作”小程序'
   end
 
   # post login 登录系统，取出token
@@ -73,7 +74,7 @@ class WechatLittleAppController < ApplicationController
     result = Hash.from_xml(request.body.read)["xml"]
     if WxPay::Sign.verify?(result)
       @user = User.find_by(openid: result["openid"])
-      Payment.create(user_id: @user.id, transaction_id: result["transaction_id"],total_fee: result["total_fee"],time_end: result["time_end"],result_code: result["result_code"])
+      Payment.create(user_id: @user.id, openid: @user.openid, transaction_id: result["transaction_id"],total_fee: result["total_fee"],time_end: result["time_end"],result_code: result["result_code"])
       @user.update(end_time: Time.now + (60*60*24*10*result["total_fee"]))
       render :xml => {result_code: "SUCCESS"}.to_xml(root: 'xml', dasherize: false)
     else
@@ -91,15 +92,27 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @user = User.find_by(openid: cache_openid)
-    # 我的未完成任务列表（朋友的，不包括陌生人的）
-    # @todos = Todo.where(user_id: @user.friendships.pluck(:friend_id), receiver_id: @user.id, is_finish: false).order(id: :desc)
-    # 我提出的希望列表
     @helps = Todo.where(user_id: @user.id, is_finish: false, grouptodo_id: nil).order(id: :desc)
-    # 我的朋友列表
-    # @friendships = Friendship.where(user_id: @user.id).order(:nickname)
-    # 我的朋友圈列表
-    # @groups = Group.where(user_id: @user.id).order(:name)
-    # @groups_helps = Grouptodo.where(user_id: @user.id, is_finish: false).order(id: :desc)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"helps": ['
+    @helps.each do |help|
+      text << '{'
+      text << '"id": ' + help.id.to_s + ", "
+      text << '"content": "' + help.content + '", '
+      text << '"receiver_id": ' + help.receiver_id.to_s + ', '
+      if friendship = Friendship.find_by(user_id: @user.id, friend_id: help.receiver_id)
+        text << '"nickname": "' + friendship.nickname + '", '
+      else
+        text << '"nickname": "' + User.find_by(id: help.receiver_id).nickname + '", '
+      end
+      text << '"created_at": "' + help.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
+    
   end
 
   # get todos  任务列表
@@ -114,6 +127,22 @@ class WechatLittleAppController < ApplicationController
     @user = User.find_by(openid: cache_openid)
     # 我的未完成任务列表（朋友的，不包括陌生人的）
     @todos = Todo.where(user_id: @user.friendships.pluck(:friend_id), receiver_id: @user.id, is_finish: false).order(id: :desc)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"todos": ['
+    @todos.each do |todo|
+      text << '{'
+      text << '"id": ' + todo.id.to_s + ", "
+      text << '"content": "' + todo.content + '", '
+      text << '"user_id": ' + todo.user_id + ', '
+      friendship = Friendship.find_by(user_id: @user.id, friend_id: todo.user_id)
+      text << '"nickname": "' + friendship.nickname + '", '
+      text << '"created_at": "' + todo.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
   # get other_todos 查看其他陌生人请我完成的任务
@@ -127,6 +156,22 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @other_todos = Todo.where(receiver_id: @user.id, is_finish: false).where.not(user_id: @user.friendships.pluck(:friend_id).push(@user.id)).order(discussions_count: :desc)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"other_todos": ['
+    @dones.each do |todo|
+      text << '{'
+      text << '"id": ' + todo.id.to_s + ", "
+      text << '"content": "' + todo.content + '", '
+      text << '"user_id": ' + todo.user_id + ', '
+      text << '"nickname": "' + todo.user.nickname + '", '
+      text << '"created_at": "' + todo.created_at.strftime("%F %T") + '"},'
+      text << '"discussion_count": ' + todo.discussion_count.to_s + '},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
   # get dones  查看我已经完成的任务
@@ -140,6 +185,25 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @dones = Todo.where(receiver_id: @user.id, is_finish: true).where.not(user_id: @user.id).order(id: :desc)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"dones": ['
+    @dones.each do |done|
+      text << '{'
+      text << '"id": ' + done.id.to_s + ", "
+      text << '"content": "' + done.content + '", '
+      text << '"user_id": ' + done.user_id + ', '
+      if friendship = Friendship.find_by(user_id: @user.id, friend_id: done.user_id)
+      text << '"nickname": "' + friendship.nickname + '", '
+      else
+      text << '"nickname": "' + done.user.nickname + '", '
+      end
+      text << '"created_at": "' + done.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
   # get helpeds  查看别人已经帮我实现的愿望
@@ -153,6 +217,25 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @helpeds = Todo.where(user_id: @user.id, is_finish: true).order(id: :desc)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"helpeds": ['
+    @helpeds.each do |helped|
+      text << '{'
+      text << '"id": ' + helped.id.to_s + ", "
+      text << '"content": "' + helped.content + '", '
+      text << '"receiver_id": ' + helped.receiver_id.to_s + ', '
+      if friendship = Friendship.find_by(user_id: @user.id, friend_id: helped.receiver_id)
+      text << '"nickname": "' + friendship.nickname + '", '
+      else
+      text << '"nickname": "' + User.find_by(id: helped.receiver_id).nickname + '", '
+      end
+      text << '"created_at": "' + helped.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
   # get groups_helps  朋友群请求列表
@@ -166,6 +249,21 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @groups_helps = Grouptodo.where(user_id: @user.id, is_finish: false).order(id: :desc)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"groups_helps": ['
+    @groups_helps.each do |grouptodo|
+      text << '{'
+      text << '"id": ' + grouptodo.id.to_s + ", "
+      text << '"content": "' + grouptodo.content + '", '
+      text << '"group_id": ' + grouptodo.group_id + ', '
+      text << '"name": "' + grouptodo.name + '", '
+      text << '"created_at": "' + grouptodo.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
   # get strangers 查看与我有联系的陌生人
@@ -179,6 +277,18 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @strangers = Friendship.where(friend_id: @user.id).where.not(user_id: @user.friendships.pluck(:friend_id)).order(:nickname)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"strangers": ['
+    @strangers.each do |stranger|
+      text << '{'
+      text << '"user_id": ' + stranger.user_id.to_s + ", "
+      text << '"nickname": "' + stranger.user.nickname + '", '
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
   # get friends  朋友列表
@@ -192,6 +302,18 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @friendships = Friendship.where(user_id: @user.id)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"friendships": ['
+    @friendships.each do |friendship|
+      text << '{'
+      text << '"friend_id": ' + friendship.friend_id.to_s + ", "
+      text << '"nickname": "' + friendship.nickname + '", '
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
   # get friend 查看朋友主页——未实现的任务
@@ -205,6 +327,25 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @friend_todos = Todo.where(receiver_id: params[:friend_id], is_finish: false).order(id: :desc)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"friend_todos": ['
+    @friend_todos.each do |friend_todo|
+      text << '{'
+      text << '"id": ' + friend_todo.id.to_s + ", "
+      text << '"content": "' + friend_todo.content + '", '
+      text << '"user_id": ' + friend_todo.user_id + ', '
+      if friendship = Friendship.find_by(user_id: @user.id, friend_id: friend_todo.user_id)
+        text << '"nickname": "' + friendship.nickname + '", '
+      else
+        text << '"nickname": "' + friend_todo.user.nickname + '", '
+      end
+      text << '"created_at": "' + friend_todo.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
   # get friend_helps 查看朋友主页——未实现的请求
@@ -218,6 +359,25 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @friend_helps = Todo.where(user_id: params[:friend_id], is_finish: false).order(id: :desc)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"friend_helps": ['
+    @friend_helps.each do |friend_help|
+      text << '{'
+      text << '"id": ' + friend_help.id.to_s + ", "
+      text << '"content": "' + friend_help.content + '", '
+      text << '"user_id": ' + friend_help.receiver_id.to_s + ', '
+      if friendship = Friendship.find_by(user_id: @user.id, friend_id: friend_help.receiver_id)
+        text << '"nickname": "' + friendship.nickname + '", '
+      else
+        text << '"nickname": "' + User.find_by(id: friend_help.receiver_id).nickname + '", '
+      end
+      text << '"created_at": "' + friend_help.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
   # get groups  群
@@ -231,7 +391,19 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     # 我的朋友圈列表
-    @groups = Group.where(user_id: @user.id).order(:name)
+    @groups = Group.where(user_id: @user.id, deleted_at: nil).order(:name)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"groups": ['
+    @groups.each do |group|
+      text << '{'
+      text << '"id": ' + group.id.to_s + ", "
+      text << '"name": "' + group.name + '", '
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
   # get group 查看群成员
@@ -246,6 +418,22 @@ class WechatLittleAppController < ApplicationController
     @user = User.find_by(openid: cache_openid)
     @group = Group.find_by(id: params[:group_id])
     @friends_in_group = User.where(id: @group.friends_id.split(','))
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"friends_in_group": ['
+    @friends_in_group.each do |friend|
+      text << '{'
+      text << '"user_id": ' + friend.id.to_s + ", "
+      if friendship = Friendship.find_by(user_id: @user.id, friend_id: friend.id)
+        text << '"nickname": "' + friendship.nickname + '", '
+      else
+        text << '"nickname": "' + friend.nickname + '", '
+      end
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
   # get group_helpeds 查看一个群里已经实现的群请求
@@ -259,6 +447,19 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @group_helpeds = Grouptodo.where(user_id: @user.id, group_id: params[:group_id], is_finish: true).order(id: :desc)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"group_helpeds": ['
+    @group_helpeds.each do |grouptodo|
+      text << '{'
+      text << '"id": ' + grouptodo.id.to_s + ", "
+      text << '"content": "' + grouptodo.content + '", '
+      text << '"created_at": "' + grouptodo.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
   # get group_helps 查看一个群里未实现的群请求
@@ -272,6 +473,19 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @group_helps = Grouptodo.where(user_id: @user.id, group_id: params[:group_id], is_finish: false).order(id: :desc)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"group_helps": ['
+    @group_helps.each do |grouptodo|
+      text << '{'
+      text << '"id": ' + grouptodo.id.to_s + ", "
+      text << '"content": "' + grouptodo.content + '", '
+      text << '"created_at": "' + grouptodo.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
   # get helps_in_grouptodo 查看群请求完成情况
@@ -285,6 +499,24 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @helps_in_grouptodo = Todo.where(grouptodo_id: params[:grouptodo_id])
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"helps_in_grouptodo": ['
+    @helps_in_grouptodo.each do |help|
+      text << '{'
+      text << '"id": ' + help.id.to_s + ", "
+      text << '"receiver_id": ' + help.receiver_id.to_s + ', '
+      if friendship = Friendship.find_by(user_id: @user.id, friend_id: help.receiver_id)
+        text << '"nickname": "' + friendship.nickname + '", '
+      else
+        text << '"nickname": "' + User.find_by(id: help.receiver_id).nickname + '", '
+      end
+      text << '"created_at": "' + help.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
   # post new_friend 添加朋友
@@ -346,10 +578,12 @@ class WechatLittleAppController < ApplicationController
       render json: {result_code: 'f', msg: '群人数应该多于2个'}
       return
     end
-    
     @group = Group.find_by(user_id: @user.id, friends_id: friends_id_params.join(','))
-    if @group
+    if @group.deleted_at == nil
       render json: {result_code: 'f', msg: '不能重复创建该群'}
+    elsif @group.deleted_at != nil
+      @group.update(deleted_at: nil, name: params[:name])
+      render json: {group_id: @new_group.id}
     else
       @new_group = Group.create(user_id: @user.id, name: params[:name], friends_id: friends_id_params.join(','))
       render json: {group_id: @new_group.id}
@@ -368,7 +602,7 @@ class WechatLittleAppController < ApplicationController
     @user = User.find_by(openid: cache_openid)
     @group = Group.find_by(user_id: @user.id, id: params[:group_id])
     if @group
-      @group.destroy
+      @group.update(deleted_at: Time.now)
       render json: {result_code: "t"}
     else
       render json: {result_code: "f", msg: '没有这个朋友圈'}
@@ -586,7 +820,6 @@ class WechatLittleAppController < ApplicationController
       render json: {result_code: 't'}
     rescue
       render json: {result_code: 'f', msg: 'quit in batch operation'}
-      end
     end
   end
 
@@ -607,5 +840,5 @@ class WechatLittleAppController < ApplicationController
     @todo.update(discussions_count: count)
     render json: {id: @discussion.id}
   end
-end
 
+end
