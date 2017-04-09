@@ -95,7 +95,7 @@ class WechatLittleAppController < ApplicationController
     @helps = Todo.where(user_id: @user.id, is_finish: false, grouptodo_id: nil).order(id: :desc)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"helps": ['
+    text = '{"helps": [ '
     @helps.each do |help|
       text << '{'
       text << '"id": ' + help.id.to_s + ", "
@@ -129,12 +129,12 @@ class WechatLittleAppController < ApplicationController
     @todos = Todo.where(user_id: @user.friendships.pluck(:friend_id), receiver_id: @user.id, is_finish: false).order(id: :desc)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"todos": ['
+    text = '{"todos": [ '
     @todos.each do |todo|
       text << '{'
       text << '"id": ' + todo.id.to_s + ", "
       text << '"content": "' + todo.content + '", '
-      text << '"user_id": ' + todo.user_id + ', '
+      text << '"user_id": ' + todo.user_id.to_s + ', '
       friendship = Friendship.find_by(user_id: @user.id, friend_id: todo.user_id)
       text << '"nickname": "' + friendship.nickname + '", '
       text << '"created_at": "' + todo.created_at.strftime("%F %T") + '"},'
@@ -158,15 +158,15 @@ class WechatLittleAppController < ApplicationController
     @other_todos = Todo.where(receiver_id: @user.id, is_finish: false).where.not(user_id: @user.friendships.pluck(:friend_id).push(@user.id)).order(discussions_count: :desc)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"other_todos": ['
-    @dones.each do |todo|
+    text = '{"other_todos": [ '
+    @other_todos.each do |todo|
       text << '{'
       text << '"id": ' + todo.id.to_s + ", "
       text << '"content": "' + todo.content + '", '
-      text << '"user_id": ' + todo.user_id + ', '
+      text << '"user_id": ' + todo.user_id.to_s + ', '
       text << '"nickname": "' + todo.user.nickname + '", '
-      text << '"created_at": "' + todo.created_at.strftime("%F %T") + '"},'
-      text << '"discussion_count": ' + todo.discussion_count.to_s + '},'
+      text << '"created_at": "' + todo.created_at.strftime("%F %T") + '", '
+      text << '"discussions_count": ' + todo.discussions_count.to_s + '},'
     end
     text.chop!
     text << ']}'
@@ -187,12 +187,12 @@ class WechatLittleAppController < ApplicationController
     @dones = Todo.where(receiver_id: @user.id, is_finish: true).where.not(user_id: @user.id).order(id: :desc)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"dones": ['
+    text = '{"dones": [ '
     @dones.each do |done|
       text << '{'
       text << '"id": ' + done.id.to_s + ", "
       text << '"content": "' + done.content + '", '
-      text << '"user_id": ' + done.user_id + ', '
+      text << '"user_id": ' + done.user_id.to_s + ', '
       if friendship = Friendship.find_by(user_id: @user.id, friend_id: done.user_id)
       text << '"nickname": "' + friendship.nickname + '", '
       else
@@ -219,7 +219,7 @@ class WechatLittleAppController < ApplicationController
     @helpeds = Todo.where(user_id: @user.id, is_finish: true).order(id: :desc)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"helpeds": ['
+    text = '{"helpeds": [ '
     @helpeds.each do |helped|
       text << '{'
       text << '"id": ' + helped.id.to_s + ", "
@@ -251,13 +251,13 @@ class WechatLittleAppController < ApplicationController
     @groups_helps = Grouptodo.where(user_id: @user.id, is_finish: false).order(id: :desc)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"groups_helps": ['
+    text = '{"groups_helps": [ '
     @groups_helps.each do |grouptodo|
       text << '{'
       text << '"id": ' + grouptodo.id.to_s + ", "
       text << '"content": "' + grouptodo.content + '", '
-      text << '"group_id": ' + grouptodo.group_id + ', '
-      text << '"name": "' + grouptodo.name + '", '
+      text << '"group_id": ' + grouptodo.group_id.to_s + ', '
+      text << '"name": "' + grouptodo.group.name + '", '
       text << '"created_at": "' + grouptodo.created_at.strftime("%F %T") + '"},'
     end
     text.chop!
@@ -279,11 +279,11 @@ class WechatLittleAppController < ApplicationController
     @strangers = Friendship.where(friend_id: @user.id).where.not(user_id: @user.friendships.pluck(:friend_id)).order(:nickname)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"strangers": ['
+    text = '{"strangers": [ '
     @strangers.each do |stranger|
       text << '{'
       text << '"user_id": ' + stranger.user_id.to_s + ", "
-      text << '"nickname": "' + stranger.user.nickname + '", '
+      text << '"nickname": "' + stranger.user.nickname + '"},'
     end
     text.chop!
     text << ']}'
@@ -304,11 +304,11 @@ class WechatLittleAppController < ApplicationController
     @friendships = Friendship.where(user_id: @user.id)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"friendships": ['
+    text = '{"friendships": [ '
     @friendships.each do |friendship|
       text << '{'
       text << '"friend_id": ' + friendship.friend_id.to_s + ", "
-      text << '"nickname": "' + friendship.nickname + '", '
+      text << '"nickname": "' + friendship.nickname + '"},'
     end
     text.chop!
     text << ']}'
@@ -329,12 +329,12 @@ class WechatLittleAppController < ApplicationController
     @friend_todos = Todo.where(receiver_id: params[:friend_id], is_finish: false).order(id: :desc)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"friend_todos": ['
+    text = '{"friend_todos": [ '
     @friend_todos.each do |friend_todo|
       text << '{'
       text << '"id": ' + friend_todo.id.to_s + ", "
       text << '"content": "' + friend_todo.content + '", '
-      text << '"user_id": ' + friend_todo.user_id + ', '
+      text << '"user_id": ' + friend_todo.user_id.to_s + ', '
       if friendship = Friendship.find_by(user_id: @user.id, friend_id: friend_todo.user_id)
         text << '"nickname": "' + friendship.nickname + '", '
       else
@@ -361,7 +361,7 @@ class WechatLittleAppController < ApplicationController
     @friend_helps = Todo.where(user_id: params[:friend_id], is_finish: false).order(id: :desc)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"friend_helps": ['
+    text = '{"friend_helps": [ '
     @friend_helps.each do |friend_help|
       text << '{'
       text << '"id": ' + friend_help.id.to_s + ", "
@@ -394,11 +394,11 @@ class WechatLittleAppController < ApplicationController
     @groups = Group.where(user_id: @user.id, deleted_at: nil).order(:name)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"groups": ['
+    text = '{"groups": [ '
     @groups.each do |group|
       text << '{'
       text << '"id": ' + group.id.to_s + ", "
-      text << '"name": "' + group.name + '", '
+      text << '"name": "' + group.name + '"},'
     end
     text.chop!
     text << ']}'
@@ -420,14 +420,14 @@ class WechatLittleAppController < ApplicationController
     @friends_in_group = User.where(id: @group.friends_id.split(','))
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"friends_in_group": ['
+    text = '{"group": [ '
     @friends_in_group.each do |friend|
       text << '{'
       text << '"user_id": ' + friend.id.to_s + ", "
       if friendship = Friendship.find_by(user_id: @user.id, friend_id: friend.id)
-        text << '"nickname": "' + friendship.nickname + '", '
+        text << '"nickname": "' + friendship.nickname + '"},'
       else
-        text << '"nickname": "' + friend.nickname + '", '
+        text << '"nickname": "' + friend.nickname + '"},'
       end
     end
     text.chop!
@@ -449,7 +449,7 @@ class WechatLittleAppController < ApplicationController
     @group_helpeds = Grouptodo.where(user_id: @user.id, group_id: params[:group_id], is_finish: true).order(id: :desc)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"group_helpeds": ['
+    text = '{"group_helpeds": [ '
     @group_helpeds.each do |grouptodo|
       text << '{'
       text << '"id": ' + grouptodo.id.to_s + ", "
@@ -475,7 +475,7 @@ class WechatLittleAppController < ApplicationController
     @group_helps = Grouptodo.where(user_id: @user.id, group_id: params[:group_id], is_finish: false).order(id: :desc)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"group_helps": ['
+    text = '{"group_helps": [ '
     @group_helps.each do |grouptodo|
       text << '{'
       text << '"id": ' + grouptodo.id.to_s + ", "
@@ -501,7 +501,7 @@ class WechatLittleAppController < ApplicationController
     @helps_in_grouptodo = Todo.where(grouptodo_id: params[:grouptodo_id])
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"helps_in_grouptodo": ['
+    text = '{"helps_in_grouptodo": [ '
     @helps_in_grouptodo.each do |help|
       text << '{'
       text << '"id": ' + help.id.to_s + ", "
@@ -736,15 +736,15 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     if params[:friends_id].size == 1
-      Todo.find_by(grouptodo_id: params[:groutodo_id], user_id: @user.id, receiver_id: params[:friends_id]).update(is_finish: true)
+      Todo.find_by(grouptodo_id: params[:groutodo_id], user_id: @user.id, receiver_id: params[:friends_id].split('_')).update(is_finish: true)
       render json: {result_code: 't'}
       return
     end
-    @todos = Todo.where(grouptodo_id: params[:grouptodo_id], user_id: @user.id, receiver_id: params[:friends_id].split(','))
+    @todos = Todo.where(grouptodo_id: params[:grouptodo_id], user_id: @user.id, receiver_id: params[:friends_id].split('_'))
     if @todos.update_all(is_finish: true)
       render json: {result_code: 't'}
     else
-      render json: {result_code: 'f', message: "没有权限关闭任务"}
+      render json: {result_code: 'f', message: "服务器拒绝关闭任务"}
     end
   end
 
@@ -780,6 +780,25 @@ class WechatLittleAppController < ApplicationController
     @user = User.find_by(openid: cache_openid)
     @todo = Todo.find_by(id: params[:todo_id])
     @discussions = @todo.discussions
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"discussions": [ '
+    @discussions.each do |discussion|
+      text << '{'
+      text << '"todo_id": ' + discussion.todo_id.to_s + ", "
+      text << '"content": "' + discussion.content + '", '
+      text << '"user_id": ' + discussion.user_id.to_s + ', '
+      if friendship = Friendship.find_by(user_id: @user.id, friend_id: discussion.user_id)
+        text << '"nickname": "' + friendship.nickname + '", '
+      else
+        text << '"nickname": "' + discussion.user.nickname + '", '
+      end
+      text << '"created_at": "' + discussion.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
   # post new_discussion  添加讨论
@@ -800,7 +819,7 @@ class WechatLittleAppController < ApplicationController
     render json: {id: @discussion.id}
   end
 
-  # post new_group_discussion
+  # post new_group_discussion 群发讨论
   # params token, grouptodo_id, content
   def new_group_discussion
     # 检查 token 是否过期
