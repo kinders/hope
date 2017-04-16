@@ -14,7 +14,7 @@ class WechatLittleAppController < ApplicationController
     @user = User.find_by(openid: wx_user["openid"])
     token = SecureRandom.uuid.tr('-', '')
     unless @user
-      @user.create(openid: wx_user["openid"], nickname: '未设置', end_time: Time.now + (60*60*24*10))
+      @user = User.create(openid: wx_user["openid"], nickname: Time.new.to_i.to_s, end_time: Time.now + (60*60*24*7))
     end
     # 检查有效登录时限，超过时限则发起微信支付
     if @user.end_time > Time.now
@@ -39,11 +39,11 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     pay_params = {
-      body: '希望协助-服务资费',          # 商品名称
+      body: '希望协助-服务资费: 7 days',          # 商品名称
       out_trade_no: Time.now.to_i,   # 商户订单号
       total_fee: 100,              # 总金额
       spbill_create_ip: request.remote_ip(),  # 终端IP
-      notify_url: 'https://my_site/notify', # 通知地址，是自己的路由
+      notify_url: 'https://www.hopee.xyz/notify', # 通知地址，是自己的路由
       trade_type: 'JSAPI', # could be "JSAPI", "NATIVE" or "APP",  交易类型
       openid: @user.openid # required when trade_type is `JSAPI` 用户开放编号
     }
@@ -75,7 +75,7 @@ class WechatLittleAppController < ApplicationController
     if WxPay::Sign.verify?(result)
       @user = User.find_by(openid: result["openid"])
       Payment.create(user_id: @user.id, openid: @user.openid, transaction_id: result["transaction_id"],total_fee: result["total_fee"],time_end: result["time_end"],result_code: result["result_code"])
-      @user.update(end_time: Time.now + (60*60*24*10*result["total_fee"]))
+      @user.update(end_time: Time.now + (60*60*24*7*(result["total_fee"].to_i)))
       render :xml => {result_code: "SUCCESS"}.to_xml(root: 'xml', dasherize: false)
     else
       render :xml => {result_code: "FAIL", return_msg: "签名失败"}.to_xml(root: 'xml', dasherize: false)
@@ -99,7 +99,7 @@ class WechatLittleAppController < ApplicationController
     @helps.each do |help|
       text << '{'
       text << '"id": ' + help.id.to_s + ", "
-      text << '"content": "' + help.content + '", '
+      text << '"content": ' + help.content.inspect + ', '
       text << '"receiver_id": ' + help.receiver_id.to_s + ', '
       if friendship = Friendship.find_by(user_id: @user.id, friend_id: help.receiver_id)
         text << '"nickname": "' + friendship.nickname + '", '
@@ -133,7 +133,7 @@ class WechatLittleAppController < ApplicationController
     @todos.each do |todo|
       text << '{'
       text << '"id": ' + todo.id.to_s + ", "
-      text << '"content": "' + todo.content + '", '
+      text << '"content": ' + todo.content.inspect + ', '
       text << '"user_id": ' + todo.user_id.to_s + ', '
       friendship = Friendship.find_by(user_id: @user.id, friend_id: todo.user_id)
       text << '"nickname": "' + friendship.nickname + '", '
@@ -162,7 +162,7 @@ class WechatLittleAppController < ApplicationController
     @other_todos.each do |todo|
       text << '{'
       text << '"id": ' + todo.id.to_s + ", "
-      text << '"content": "' + todo.content + '", '
+      text << '"content": ' + todo.content.inspect + ', '
       text << '"user_id": ' + todo.user_id.to_s + ', '
       text << '"nickname": "' + todo.user.nickname + '", '
       text << '"created_at": "' + todo.created_at.strftime("%F %T") + '", '
@@ -184,14 +184,48 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @user = User.find_by(openid: cache_openid)
-    @dones = Todo.where(receiver_id: @user.id, is_finish: true).where.not(user_id: @user.id).order(id: :desc)
+    @dones = Todo.where(receiver_id: @user.id, is_finish: true).where.not(user_id: @user.id).limit(50).order(id: :desc)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
     text = '{"dones": [ '
     @dones.each do |done|
       text << '{'
       text << '"id": ' + done.id.to_s + ", "
-      text << '"content": "' + done.content + '", '
+      text << '"content": ' + done.content.inspect + ', '
+      text << '"user_id": ' + done.user_id.to_s + ', '
+      if friendship = Friendship.find_by(user_id: @user.id, friend_id: done.user_id)
+      text << '"nickname": "' + friendship.nickname + '", '
+      else
+      text << '"nickname": "' + done.user.nickname + '", '
+      end
+      text << '"created_at": "' + done.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
+  end
+
+  # get dones_in_date  查看我已经完成的任务
+  # params: token date
+  def dones_in_date
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    year, month, day = params[:date].split('-')
+    one_day = Time.new(year, month, day).all_day
+    @dones = Todo.where(receiver_id: @user.id, is_finish: true, created_at: one_day).where.not(user_id: @user.id).order(id: :desc)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"dones": [ '
+    @dones.each do |done|
+      text << '{'
+      text << '"id": ' + done.id.to_s + ", "
+      text << '"content": ' + done.content.inspect + ', '
       text << '"user_id": ' + done.user_id.to_s + ', '
       if friendship = Friendship.find_by(user_id: @user.id, friend_id: done.user_id)
       text << '"nickname": "' + friendship.nickname + '", '
@@ -216,14 +250,48 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @user = User.find_by(openid: cache_openid)
-    @helpeds = Todo.where(user_id: @user.id, is_finish: true).order(id: :desc)
+    @helpeds = Todo.where(user_id: @user.id, is_finish: true).limit(50).order(id: :desc)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
     text = '{"helpeds": [ '
     @helpeds.each do |helped|
       text << '{'
       text << '"id": ' + helped.id.to_s + ", "
-      text << '"content": "' + helped.content + '", '
+      text << '"content": ' + helped.content.inspect + ', '
+      text << '"receiver_id": ' + helped.receiver_id.to_s + ', '
+      if friendship = Friendship.find_by(user_id: @user.id, friend_id: helped.receiver_id)
+      text << '"nickname": "' + friendship.nickname + '", '
+      else
+      text << '"nickname": "' + User.find_by(id: helped.receiver_id).nickname + '", '
+      end
+      text << '"created_at": "' + helped.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
+  end
+
+  # get helpeds_in_date  查看别人已经帮我实现的愿望
+  # params: token date
+  def helpeds_in_date
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    year, month, day = params[:date].split('-')
+    one_day = Time.new(year, month, day).all_day
+    @helpeds = Todo.where(user_id: @user.id, is_finish: true, created_at: one_day).order(id: :desc)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"helpeds": [ '
+    @helpeds.each do |helped|
+      text << '{'
+      text << '"id": ' + helped.id.to_s + ", "
+      text << '"content": ' + helped.content.inspect + ', '
       text << '"receiver_id": ' + helped.receiver_id.to_s + ', '
       if friendship = Friendship.find_by(user_id: @user.id, friend_id: helped.receiver_id)
       text << '"nickname": "' + friendship.nickname + '", '
@@ -255,7 +323,7 @@ class WechatLittleAppController < ApplicationController
     @groups_helps.each do |grouptodo|
       text << '{'
       text << '"id": ' + grouptodo.id.to_s + ", "
-      text << '"content": "' + grouptodo.content + '", '
+      text << '"content": ' + grouptodo.content.inspect + ', '
       text << '"group_id": ' + grouptodo.group_id.to_s + ', '
       text << '"name": "' + grouptodo.group.name + '", '
       text << '"created_at": "' + grouptodo.created_at.strftime("%F %T") + '"},'
@@ -333,7 +401,7 @@ class WechatLittleAppController < ApplicationController
     @friend_todos.each do |friend_todo|
       text << '{'
       text << '"id": ' + friend_todo.id.to_s + ", "
-      text << '"content": "' + friend_todo.content + '", '
+      text << '"content": ' + friend_todo.content.inspect + ', '
       text << '"user_id": ' + friend_todo.user_id.to_s + ', '
       if friendship = Friendship.find_by(user_id: @user.id, friend_id: friend_todo.user_id)
         text << '"nickname": "' + friendship.nickname + '", '
@@ -365,7 +433,7 @@ class WechatLittleAppController < ApplicationController
     @friend_helps.each do |friend_help|
       text << '{'
       text << '"id": ' + friend_help.id.to_s + ", "
-      text << '"content": "' + friend_help.content + '", '
+      text << '"content": ' + friend_help.content.inspect + ', '
       text << '"user_id": ' + friend_help.receiver_id.to_s + ', '
       if friendship = Friendship.find_by(user_id: @user.id, friend_id: friend_help.receiver_id)
         text << '"nickname": "' + friendship.nickname + '", '
@@ -453,7 +521,7 @@ class WechatLittleAppController < ApplicationController
     @group_helpeds.each do |grouptodo|
       text << '{'
       text << '"id": ' + grouptodo.id.to_s + ", "
-      text << '"content": "' + grouptodo.content + '", '
+      text << '"content": ' + grouptodo.content.inspect + ', '
       text << '"created_at": "' + grouptodo.created_at.strftime("%F %T") + '"},'
     end
     text.chop!
@@ -479,7 +547,7 @@ class WechatLittleAppController < ApplicationController
     @group_helps.each do |grouptodo|
       text << '{'
       text << '"id": ' + grouptodo.id.to_s + ", "
-      text << '"content": "' + grouptodo.content + '", '
+      text << '"content": ' + grouptodo.content.inspect + ', '
       text << '"created_at": "' + grouptodo.created_at.strftime("%F %T") + '"},'
     end
     text.chop!
@@ -511,6 +579,7 @@ class WechatLittleAppController < ApplicationController
       else
         text << '"nickname": "' + User.find_by(id: help.receiver_id).nickname + '", '
       end
+      text << '"is_finish": "' + help.is_finish.to_s + '", '
       text << '"created_at": "' + help.created_at.strftime("%F %T") + '"},'
     end
     text.chop!
@@ -579,14 +648,32 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @group = Group.find_by(user_id: @user.id, friends_id: friends_id_params.join(','))
-    if @group.deleted_at == nil
+    if @group && @group.deleted_at == nil
       render json: {result_code: 'f', msg: '不能重复创建该群'}
-    elsif @group.deleted_at != nil
+    elsif @group && @group.deleted_at != nil
       @group.update(deleted_at: nil, name: params[:name])
-      render json: {group_id: @new_group.id}
+      render json: {group_id: @group.id}
     else
       @new_group = Group.create(user_id: @user.id, name: params[:name], friends_id: friends_id_params.join(','))
       render json: {group_id: @new_group.id}
+    end
+  end
+
+  # post new_members 新建朋友群
+  # params: token friends_id group_id
+  def new_members
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    @group = Group.find_by(user_id: @user.id, id: params[:group_id])
+    friends_id_params = params[:friends_id].sort
+    if @group 
+      @group.update(friends_id: friends_id_params.join(',')) 
+      render json: {result_code: "t"}
     end
   end
 
@@ -620,7 +707,7 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @group = Group.find_by(id: params[:group_id], user_id: @user.id)
-    if @group.update(name: params[:name])
+    if @group && @group.update(name: params[:name])
       render json: {result_code: 't'}
     end
   end
@@ -637,6 +724,22 @@ class WechatLittleAppController < ApplicationController
     @user = User.find_by(openid: cache_openid)
     @todo = Todo.create(user_id: @user.id, receiver_id: params[:receiver_id], content: params[:content], is_finish: false)
     render json: {id: @todo.id, created_at: @todo.created_at.strftime("%F %T")}
+  end
+  
+  # post new_help_to_friends 新建请求给朋友
+  # params: token, friends_id, content
+  def new_help_to_friends
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    params[:friends_id].to_a.each{ |f|
+      @todo = Todo.create(user_id: @user.id, receiver_id: f.to_i, content: params[:content], is_finish: false)
+    }
+    render json: { result_code: 't' }
   end
   
   # post new_help_to_group 新建群请求
@@ -671,7 +774,7 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @user = User.find_by(openid: cache_openid)
-    if @user.id.to_s == params[:friend_id]
+    if @user && @user.id.to_s == params[:friend_id]
       @user.update(nickname: params[:nickname])
       render json: {result_code: 't'}
       return
@@ -736,12 +839,12 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     if params[:friends_id].size == 1
-      Todo.find_by(grouptodo_id: params[:groutodo_id], user_id: @user.id, receiver_id: params[:friends_id].split('_')).update(is_finish: true)
+      Todo.find_by(grouptodo_id: params[:grouptodo_id], user_id: @user.id, receiver_id: params[:friends_id]).update(is_finish: true)
       render json: {result_code: 't'}
       return
     end
     @todos = Todo.where(grouptodo_id: params[:grouptodo_id], user_id: @user.id, receiver_id: params[:friends_id].split('_'))
-    if @todos.update_all(is_finish: true)
+    if @todos.any? && @todos.update_all(is_finish: true)
       render json: {result_code: 't'}
     else
       render json: {result_code: 'f', message: "服务器拒绝关闭任务"}
@@ -786,7 +889,7 @@ class WechatLittleAppController < ApplicationController
     @discussions.each do |discussion|
       text << '{'
       text << '"todo_id": ' + discussion.todo_id.to_s + ", "
-      text << '"content": "' + discussion.content + '", '
+      text << '"content": ' + discussion.content.inspect + ', '
       text << '"user_id": ' + discussion.user_id.to_s + ', '
       if friendship = Friendship.find_by(user_id: @user.id, friend_id: discussion.user_id)
         text << '"nickname": "' + friendship.nickname + '", '
