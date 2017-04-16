@@ -589,7 +589,7 @@ class WechatLittleAppController < ApplicationController
   end
 
   # post new_friend 添加朋友
-  # 参数：token, friend_id, nickname
+  # 参数：token, friend_id, nickname, is_fiction
   def new_friend
     # 检查 token 是否过期
     cache_openid = $redis.get(params[:token])
@@ -598,6 +598,12 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @user = User.find_by(openid: cache_openid)
+    if params[:is_fiction] == '1'
+      @friend = User.create(openid: 'fiction' + @user.id.to_s, nickname: params[:nickname], end_time: Time.now)
+      Friendship.create(user_id: @user.id, friend_id: @friend.id, nickname: params[:nickname])
+      render json: {id: @friend.id}
+      return
+    end
     if params[:friend_id] == @user.id
       render json: {result_code: 'f', msg: '你是你最好的朋友！'}
       return
