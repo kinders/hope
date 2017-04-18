@@ -39,7 +39,7 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     pay_params = {
-      body: '希望协助-服务资费: 7 days',          # 商品名称
+      body: '希望协助- 7 天服务费',          # 商品名称
       out_trade_no: Time.now.to_i,   # 商户订单号
       total_fee: 100,              # 总金额
       spbill_create_ip: request.remote_ip(),  # 终端IP
