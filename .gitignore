@@ -24,4 +24,9 @@
 .ses
 
 # 忽略构思草稿
-hope.ods
+/hope.ods
+
+
+/config/database.yml
+/config/secrets.yml
+/config/initializers/wx_pay.rb
