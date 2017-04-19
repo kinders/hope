@@ -376,6 +376,8 @@ class WechatLittleAppController < ApplicationController
     @friendships.each do |friendship|
       text << '{'
       text << '"friend_id": ' + friendship.friend_id.to_s + ", "
+      helps_length = Todo.where(user_id: friendship.user_id, receiver_id: friendship.friend_id, is_finish: false).count
+      text << '"helps_length": ' + helps_length.to_s + ', '
       text << '"nickname": "' + friendship.nickname + '"},'
     end
     text.chop!
