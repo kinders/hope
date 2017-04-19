@@ -814,6 +814,25 @@ class WechatLittleAppController < ApplicationController
     end
   end
 
+  # post open_grouptodo 关闭群请求 
+  # params: token, grouptodo_id
+  def open_grouptodo
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    @grouptodo = Grouptodo.find_by(id: params[:grouptodo_id], user_id: @user.id)
+    if @grouptodo
+      @grouptodo.update(is_finish: false)
+      render json: {result_code: 't'}
+    else
+      render json: {result_code: 'f', msg: '没有权限来关闭这个群请求。'}
+    end
+  end
+
   # post close_help  关闭请求
   # params token, todo_id
   def close_help
