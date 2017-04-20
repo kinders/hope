@@ -10,21 +10,26 @@ class WechatLittleAppController < ApplicationController
   # params js_code
   def login
     js_code = params[:js_code]
+    if js_code == ''
+      render plain: ''
+      return
+    end
     wx_user = WxPay::Service.authenticate_from_weapp(js_code)
+    if wx_user["openid"] == ''
+      render plain: ''
+      return
+    end
     @user = User.find_by(openid: wx_user["openid"])
     token = SecureRandom.uuid.tr('-', '')
     unless @user
       @user = User.create(openid: wx_user["openid"], nickname: Time.new.to_i.to_s, end_time: Time.now + (60*60*24*7))
     end
+    $redis.set(token, wx_user["openid"])  # 因为不想解密那些敏感信息，就不来存储会话密钥了。
     # 检查有效登录时限，超过时限则发起微信支付
     if @user.end_time > Time.now
-      # 写入缓存
-      # $redis.set(token, wx_user["session_key"] + "DELIMITER" + wx_user["openid"])
-      $redis.set(token, wx_user["openid"])  # 因为不想解密那些敏感信息，就不来存储会话密钥了。
-      # 转到 我的任务 页面
       render json: {result_code: "t", token: token, current_user: {id: @user.id, nickname: @user.nickname, end_time: @user.end_time.strftime("%F %T")}}
     else
-      render json: {result_code: "expired", msg: '超过使用期限，请先充值'}
+      render json: {result_code: "expired", token: token, current_user: {id: @user.id, nickname: @user.nickname, end_time: @user.end_time.strftime("%F %T")}}
     end
   end
 
