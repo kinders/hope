@@ -79,8 +79,10 @@ class WechatLittleAppController < ApplicationController
     result = Hash.from_xml(request.body.read)["xml"]
     if WxPay::Sign.verify?(result)
       @user = User.find_by(openid: result["openid"])
-      Payment.create(user_id: @user.id, openid: @user.openid, transaction_id: result["transaction_id"],total_fee: result["total_fee"],time_end: result["time_end"],result_code: result["result_code"])
-      @user.update(end_time: Time.now + (60*60*24*7*(result["total_fee"].to_i)))
+      unless Payment.find_by(transaction_id: result["transaction_id"])
+        Payment.create(user_id: @user.id, openid: @user.openid, transaction_id: result["transaction_id"],total_fee: result["total_fee"],time_end: result["time_end"],result_code: result["result_code"])
+        @user.update(end_time: Time.now + (60*60*24*7*(result["total_fee"].to_i)))
+      end
       render :xml => {result_code: "SUCCESS"}.to_xml(root: 'xml', dasherize: false)
     else
       render :xml => {result_code: "FAIL", return_msg: "签名失败"}.to_xml(root: 'xml', dasherize: false)
