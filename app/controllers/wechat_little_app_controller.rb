@@ -29,7 +29,7 @@ class WechatLittleAppController < ApplicationController
     if @user.end_time > Time.now
       render json: {result_code: "t", token: token, current_user: {id: @user.id, nickname: @user.nickname, end_time: @user.end_time.strftime("%F %T")}}
     else
-      render json: {result_code: "expired", token: token, current_user: {id: @user.id, nickname: @user.nickname, end_time: @user.end_time.strftime("%F %T")}}
+      render json: {result_code: "expired", msg: '续费1元，使用7天', token: token, current_user: {id: @user.id, nickname: @user.nickname, end_time: @user.end_time.strftime("%F %T")}}
     end
   end
 
