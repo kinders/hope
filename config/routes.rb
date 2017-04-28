@@ -14,6 +14,8 @@ Rails.application.routes.draw do
   get 'friends', to: 'wechat_little_app#friends'
   get 'friend', to: 'wechat_little_app#friend'
   get 'friend_helps', to: 'wechat_little_app#friend_helps'
+  get 'friend_dones', to: 'wechat_little_app#friend_dones'
+  get 'friend_dones_in_date', to: 'wechat_little_app#friend_dones_in_date'
   get 'groups', to: 'wechat_little_app#groups'
   get 'group', to: 'wechat_little_app#group'
   get 'group_helpeds', to: 'wechat_little_app#group_helpeds'

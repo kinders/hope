@@ -457,6 +457,72 @@ class WechatLittleAppController < ApplicationController
   #=end
   end
 
+  # get friend_dones  查看我已经完成的任务
+  # params: token friend_id
+  def friend_dones
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    @friend_dones = Todo.where(receiver_id: params[:friend_id], user_id: @user.id, is_finish: true).limit(50).order(updated_at: :desc)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"friend_dones": [ '
+    @friend_dones.each do |done|
+      text << '{'
+      text << '"id": ' + done.id.to_s + ", "
+      text << '"content": ' + done.content.inspect + ', '
+      text << '"receiver_id": ' + done.receiver_id.to_s + ', '
+      if friendship = Friendship.find_by(user_id: @user.id, friend_id: done.receiver_id)
+      text << '"nickname": "' + friendship.nickname + '", '
+      else
+      text << '"nickname": "' + done.user.nickname + '", '
+      end
+      text << '"created_at": "' + done.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
+  end
+
+  # get friend_dones_in_date  查看我已经完成的任务
+  # params: token friend_id date
+  def friend_dones_in_date
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    year, month, day = params[:date].split('-')
+    one_day = Time.new(year, month, day).all_day
+    @friend_dones = Todo.where(receiver_id: params[:friend_id], user_id: @user.id, is_finish: true, created_at: one_day).order(updated_at: :desc)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"friend_dones": [ '
+    @friend_dones.each do |done|
+      text << '{'
+      text << '"id": ' + done.id.to_s + ", "
+      text << '"content": ' + done.content.inspect + ', '
+      text << '"receiver_id": ' + done.receiver_id.to_s + ', '
+      if friendship = Friendship.find_by(user_id: @user.id, friend_id: done.user_id)
+      text << '"nickname": "' + friendship.nickname + '", '
+      else
+      text << '"nickname": "' + done.user.nickname + '", '
+      end
+      text << '"created_at": "' + done.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
+  end
+
   # get groups  群
   # params: token
   def groups
