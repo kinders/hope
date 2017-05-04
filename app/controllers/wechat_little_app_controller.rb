@@ -22,7 +22,7 @@ class WechatLittleAppController < ApplicationController
     @user = User.find_by(openid: wx_user["openid"])
     token = SecureRandom.uuid.tr('-', '')
     unless @user
-      @user = User.create(openid: wx_user["openid"], nickname: Time.new.to_i.to_s, end_time: Time.now + (60*60*24*7))
+      @user = User.create(openid: wx_user["openid"], nickname: Time.new.to_i.to_s, end_time: Time.now + 864000)
     end
     $redis.set(token, wx_user["openid"])  # 因为不想解密那些敏感信息，就不来存储会话密钥了。
     # 检查有效登录时限，超过时限则发起微信支付
@@ -44,7 +44,7 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     pay_params = {
-      body: '希望协助- 7 天服务费',          # 商品名称
+      body: '希望协助- 10 天服务费',          # 商品名称
       out_trade_no: Time.now.to_i,   # 商户订单号
       total_fee: 100,              # 总金额
       spbill_create_ip: request.remote_ip(),  # 终端IP
@@ -81,7 +81,7 @@ class WechatLittleAppController < ApplicationController
       @user = User.find_by(openid: result["openid"])
       unless Payment.find_by(transaction_id: result["transaction_id"])
         Payment.create(user_id: @user.id, openid: @user.openid, transaction_id: result["transaction_id"],total_fee: result["total_fee"],time_end: result["time_end"],result_code: result["result_code"])
-        @user.update(end_time: Time.now + (60*60*24*7*(result["total_fee"].to_i)))
+        @user.update(end_time: Time.now + 864000)
       end
       render :xml => {result_code: "SUCCESS"}.to_xml(root: 'xml', dasherize: false)
     else
