@@ -27,8 +27,9 @@ class WechatLittleAppController < ApplicationController
     $redis.set(token, wx_user["openid"])  # 因为不想解密那些敏感信息，就不来存储会话密钥了。
     # 检查有效登录时限，超过时限则发起微信支付
     if @user.end_time > Time.now
-      render json: {result_code: "t", token: token, current_user: {id: @user.id, nickname: @user.nickname, end_time: @user.end_time.strftime("%F %T")}}
+      render json: {result_code: "t", token: token, current_user: {id: @user.id, nickname: @user.nickname}}
     else
+      #render json: {result_code: "t", token: token, current_user: {id: @user.id, nickname: @user.nickname}}
       render json: {result_code: "expired", msg: '续费1元，使用10天', token: token, current_user: {id: @user.id, nickname: @user.nickname, end_time: @user.end_time.strftime("%F %T")}}
     end
   end
@@ -500,8 +501,15 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     year, month, day = params[:date].split('-')
-    one_day = Time.new(year, month, day).all_day
-    @friend_dones = Todo.where(receiver_id: params[:friend_id], user_id: @user.id, is_finish: true, created_at: one_day).order(updated_at: :desc)
+    if params[:start_date]
+      start_year, start_month, start_day = params[:start_date].split('-')
+      start_time = Time.new(start_year, start_month, start_day).at_beginning_of_day()
+      end_time = Time.new(year, month, day).at_end_of_day()
+      @friend_dones = Todo.where(receiver_id: params[:friend_id], user_id: @user.id, is_finish: true, created_at: start_time..end_time).order(id: :desc)
+    else
+      one_day = Time.new(year, month, day).all_day
+      @friend_dones = Todo.where(receiver_id: params[:friend_id], user_id: @user.id, is_finish: true, created_at: one_day).order(id: :desc)
+    end
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
     text = '{"friend_dones": [ '
@@ -567,6 +575,8 @@ class WechatLittleAppController < ApplicationController
     @friends_in_group.each do |friend|
       text << '{'
       text << '"user_id": ' + friend.id.to_s + ", "
+      helps_length = Todo.where(user_id: @user.id, receiver_id: friend.id, is_finish: false).count
+      text << '"helps_length": ' + helps_length.to_s + ', '
       if friendship = Friendship.find_by(user_id: @user.id, friend_id: friend.id)
         text << '"nickname": "' + friendship.nickname + '"},'
       else
