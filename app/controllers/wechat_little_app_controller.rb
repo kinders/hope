@@ -29,8 +29,8 @@ class WechatLittleAppController < ApplicationController
     if @user.end_time > Time.now
       render json: {result_code: "t", token: token, current_user: {id: @user.id, nickname: @user.nickname}}
     else
-      #render json: {result_code: "t", token: token, current_user: {id: @user.id, nickname: @user.nickname}}
-      render json: {result_code: "expired", msg: '续费1元，使用10天', token: token, current_user: {id: @user.id, nickname: @user.nickname, end_time: @user.end_time.strftime("%F %T")}}
+      render json: {result_code: "t", token: token, current_user: {id: @user.id, nickname: @user.nickname}}
+      #render json: {result_code: "expired", msg: '续费1元，使用10天', token: token, current_user: {id: @user.id, nickname: @user.nickname, end_time: @user.end_time.strftime("%F %T")}}
     end
   end
 
@@ -1071,6 +1071,134 @@ class WechatLittleAppController < ApplicationController
     count = count + 1
     @todo.update(discussions_count: count)
     render json: {id: @discussion.id}
+  end
+
+  # post search_todos
+  # params: token, user_id, scope, start_date, end_date, searchword
+  def search_todos
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    @user2 = User.find_by(id: params[:user_id])
+    start_year, start_month, start_day = params[:start_date].split('-')
+    end_year, end_month, end_day = params[:end_date].split('-')
+    start_time = Time.new(start_year, start_month, start_day).at_beginning_of_day()
+    end_time = Time.new(end_year, end_month, end_day).at_end_of_day()
+    @todos = []
+    case params[:scope]
+    when "0"
+      @todos = Todo.where(user_id: @user2.id, receiver_id: @user.id, is_finish: true, created_at: start_time..end_time).order(id: :desc)
+    when "1"
+      @todos = Todo.where(user_id: @user2.id, receiver_id: @user.id, is_finish: false, created_at: start_time..end_time).order(id: :desc)
+    when "2"
+      @todos = Todo.where(user_id: @user.id, receiver_id: @user2.id, is_finish: true, created_at: start_time..end_time).order(id: :desc)
+    when "3"
+      @todos = Todo.where(user_id: @user.id, receiver_id: @user2.id, is_finish: false, created_at: start_time..end_time).order(id: :desc)
+    end  
+  # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    i = 0
+    text = '{"todos": [ '
+    @todos.each do |todo|
+      break if i == 100
+      next if todo.content.scan(params[:searchword]).empty?
+      text << '{'
+      text << '"id": ' + todo.id.to_s + ", "
+      text << '"content": ' + todo.content.inspect + ', '
+      text << '"is_finish": ' + todo.is_finish.to_s + ', '
+      text << '"user_id": ' + todo.user_id.to_s + ', '
+      if @user.id == todo.user_id
+        text << '"user_nickname": "' + todo.user.nickname + '", '
+      else
+        friendship = Friendship.find_by(user_id: @user.id, friend_id: todo.user_id)
+        text << '"user_nickname": "' + friendship.nickname + '", '
+      end
+      text << '"receiver_id": ' + todo.receiver_id.to_s + ', '
+      if @user.id == todo.receiver_id
+        text << '"receiver_nickname": "' + todo.user.nickname + '", '
+      else
+        friendship = Friendship.find_by(user_id: @user.id, friend_id: todo.receiver_id)
+        text << '"receiver_nickname": "' + friendship.nickname + '", '
+      end
+      text << '"created_at": "' + todo.created_at.strftime("%F %T") + '"},'
+      i = i + 1
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
+  end
+
+
+  # post new_award
+  # params: token, receiver_id, content
+  def new_award
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    @award= Award.create(user_id: params[:receiver_id], sender_id: @user.id, content: params[:content])
+    render json: {id: @award.id, created_at: @award.created_at.strftime("%F %T")}
+  end
+  
+  # get awards
+  # params: token
+  def awards
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    @count = Award.where(user_id: @user.id).count
+    @awards = Award.where(user_id: @user.id).last(100)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"count": ' + @count.to_s + ', "awards": [ '
+    @awards.each do |award|
+      text << '{'
+      text << '"id": ' + award.id.to_s + ", "
+      text << '"content": ' + award.content.inspect + ', '
+      text << '"sender_id": ' + award.sender_id.to_s + ', '
+      if friendship = Friendship.find_by(user_id: @user.id, friend_id: award.sender_id)
+        text << '"nickname": "' + friendship.nickname + '", '
+      else
+        text << '"nickname": "' + User.find_by(id: award.sender_id).nickname + '", '
+      end
+      text << '"created_at": "' + award.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
+    
+  end
+
+  # post delete_award
+  # params token, award_id
+  def delete_award
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    @award = Award.find_by(id: params[:award_id], user_id: @user.id)
+    if @award
+      @award.destroy
+      render json: {result_code: 't'}
+    else
+      render json: {result_code: 'f', message: "bad award"}
+    end
   end
 
 end

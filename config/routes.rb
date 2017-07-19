@@ -40,6 +40,12 @@ Rails.application.routes.draw do
   get 'todo', to: 'wechat_little_app#todo'
   post 'new_discussion', to: 'wechat_little_app#new_discussion'
   post 'new_group_discussion', to: 'wechat_little_app#new_group_discussion'
+  post 'search_todos', to: 'wechat_little_app#search_todos'
+
+  get 'awards', to: 'wechat_little_app#awards'
+  post 'new_award', to: 'wechat_little_app#new_award'
+  post 'delete_award', to: 'wechat_little_app#delete_award'
+
   root 'wechat_little_app#hello'
   # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
 end
