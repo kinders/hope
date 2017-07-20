@@ -1159,7 +1159,7 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @count = Award.where(user_id: @user.id).count
-    @awards = Award.where(user_id: @user.id).last(100)
+    @awards = Award.where(user_id: @user.id).order(id: :desc).last(100)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
     text = '{"count": ' + @count.to_s + ', "awards": [ '
