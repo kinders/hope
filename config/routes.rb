@@ -1,4 +1,7 @@
 Rails.application.routes.draw do
+
+  root 'wechat_little_app#hello'
+
   post 'login', to: 'wechat_little_app#login'
   post 'wechat_pay', to: 'wechat_little_app#wechat_pay'
   post 'notify', to: 'wechat_little_app#notify'
@@ -46,6 +49,6 @@ Rails.application.routes.draw do
   post 'new_award', to: 'wechat_little_app#new_award'
   post 'delete_award', to: 'wechat_little_app#delete_award'
 
-  root 'wechat_little_app#hello'
+  get  '*other', to: 'wechat_little_app#hello'
   # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
 end
