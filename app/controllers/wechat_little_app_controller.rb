@@ -1248,16 +1248,16 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @user = User.find_by(openid: cache_openid)
-    helps = Todo.where(user_id: @user.id, is_finish: false).pluck(:id)
-    @discussions = Discussion.where(todo_id: helps).where.not(user_id: @user.id).order(id: :desc).first(200)
+    helps = Todo.where(user_id: @user.id, is_finish: false).or(Todo.where(receiver_id: @user.id, is_finish: false)).pluck(:id)
+    @discussions = Discussion.where(todo_id: helps).where.not(user_id: @user.id).order(id: :desc).first(500)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"discussions": [ '
+    text = '{"hot_discussions": [ '
     @discussions.each do |discussion|
       text << '{'
-      text << '"todo_id": "' + discussion.todo_id.to_s + '", '
-      text << '"content": "' + discussion.content.inspect + '", '
-      text << '"user_id": "' + discussion.user_id.to_s + '", '
+      text << '"todo_id": ' + discussion.todo_id.to_s + ', '
+      text << '"content": ' + discussion.content.inspect + ', '
+      text << '"user_id": ' + discussion.user_id.to_s + ', '
       if friendship = Friendship.find_by(user_id: @user.id, friend_id: discussion.user_id)
         text << '"nickname": "' + friendship.nickname + '", '
       else
