@@ -995,7 +995,16 @@ class WechatLittleAppController < ApplicationController
     @discussions = @todo.discussions
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"discussions": [ '
+    text = '{"todo": { "receiver_id": ' + @todo.receiver_id.to_s + ', '
+    if friendship = Friendship.find_by(user_id: @user.id, friend_id: @todo.receiver_id)
+      text << '"receiver_nickname": "' + friendship.nickname + '", '
+    else
+      text << '"receiver_nickname": "' + User.find(@todo.receiver_id).nickname + '", '
+    end
+    text << '"content": ' + @todo.content.inspect + ', '
+    text << '"is_finish": "' + @todo.is_finish.to_s + '", '
+    text << '"created_at": "' + @todo.created_at.strftime("%F %T") + '" }'
+    text << ', "discussions": [ '
     @discussions.each do |discussion|
       text << '{'
       text << '"todo_id": ' + discussion.todo_id.to_s + ", "
@@ -1159,7 +1168,7 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @count = Award.where(user_id: @user.id).count
-    @awards = Award.where(user_id: @user.id).order(id: :desc).last(100)
+    @awards = Award.where(user_id: @user.id).order(id: :desc).first(100)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
     text = '{"count": ' + @count.to_s + ', "awards": [ '
@@ -1181,6 +1190,34 @@ class WechatLittleAppController < ApplicationController
   #=end
     
   end
+  
+  # get friend_awards
+  # params: token friend_id
+  def friend_awards
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    @count = Award.where(user_id: params[:friend_id], sender_id: @user.id).count
+    @awards = Award.where(user_id: params[:friend_id], sender_id: @user.id).order(id: :desc).first(100)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"count": ' + @count.to_s + ', "awards": [ '
+    @awards.each do |award|
+      text << '{'
+      text << '"id": ' + award.id.to_s + ", "
+      text << '"content": ' + award.content.inspect + ', '
+      text << '"created_at": "' + award.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
+    
+  end
 
   # post delete_award
   # params token, award_id
@@ -1192,13 +1229,46 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @user = User.find_by(openid: cache_openid)
-    @award = Award.find_by(id: params[:award_id], user_id: @user.id)
+    @award = Award.find_by(id: params[:award_id])
     if @award
       @award.destroy
       render json: {result_code: 't'}
     else
       render json: {result_code: 'f', message: "bad award"}
     end
+  end
+
+  # get hot_discussions
+  # params: token
+  def hot_discussions
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    helps = Todo.where(user_id: @user.id, is_finish: false).pluck(:id)
+    @discussions = Discussion.where(todo_id: helps).where.not(user_id: @user.id).order(id: :desc).first(200)
+    # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
+#=begin
+    text = '{"discussions": [ '
+    @discussions.each do |discussion|
+      text << '{'
+      text << '"todo_id": "' + discussion.todo_id.to_s + '", '
+      text << '"content": "' + discussion.content.inspect + '", '
+      text << '"user_id": "' + discussion.user_id.to_s + '", '
+      if friendship = Friendship.find_by(user_id: @user.id, friend_id: discussion.user_id)
+        text << '"nickname": "' + friendship.nickname + '", '
+      else
+        text << '"nickname": "' + discussion.user.nickname + '", '
+      end
+      text << '"created_at": "' + discussion.created_at.strftime("%F %T") + '"},'
+    end
+    text.chop!
+    text << ']}'
+    render plain: text
+  #=end
   end
 
 end

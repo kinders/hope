@@ -46,9 +46,10 @@ Rails.application.routes.draw do
   post 'search_todos', to: 'wechat_little_app#search_todos'
 
   get 'awards', to: 'wechat_little_app#awards'
+  get 'friend_awards', to: 'wechat_little_app#friend_awards'
   post 'new_award', to: 'wechat_little_app#new_award'
   post 'delete_award', to: 'wechat_little_app#delete_award'
 
-  get  '*other', to: 'wechat_little_app#hello'
+  get 'hot_discussions', to: 'wechat_little_app#hot_discussions'
   # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
 end
