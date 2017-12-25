@@ -1249,8 +1249,8 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     helps = Todo.where(user_id: @user.id, is_finish: false).or(Todo.where(receiver_id: @user.id, is_finish: false)).pluck(:id)
-    # helps_1 = Todo.wehre(user_id: @user.id, is_finish: false).pluck(:id)
-    # helps_2 = Todo.wehre(receiver_id: @user.id, is_finish: false).pluck(:id)
+    # helps_1 = Todo.where(user_id: @user.id, is_finish: false).pluck(:id)
+    # helps_2 = Todo.where(receiver_id: @user.id, is_finish: false).pluck(:id)
     # helps_3 = Discussion.where(user_id: @user.id).pluck(:todo_id).uniq
     # helps = helps_1 + helps_2 + helps_3
     # helps.uniq!
