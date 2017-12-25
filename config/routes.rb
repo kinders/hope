@@ -52,4 +52,6 @@ Rails.application.routes.draw do
 
   get 'hot_discussions', to: 'wechat_little_app#hot_discussions'
   # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
+
+  get '*other', to: 'wechat_little_app#hello'
 end

@@ -192,7 +192,7 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @user = User.find_by(openid: cache_openid)
-    @dones = Todo.where(receiver_id: @user.id, is_finish: true).where.not(user_id: @user.id).limit(50).order(id: :desc)
+    @dones = Todo.where(receiver_id: @user.id, is_finish: true).where.not(user_id: @user.id).order(id: :desc).first(50)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
     text = '{"dones": [ '
@@ -258,7 +258,7 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @user = User.find_by(openid: cache_openid)
-    @helpeds = Todo.where(user_id: @user.id, is_finish: true).limit(50).order(id: :desc)
+    @helpeds = Todo.where(user_id: @user.id, is_finish: true).order(updated_at: :desc).first(50)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
     text = '{"helpeds": [ '
@@ -468,7 +468,7 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @user = User.find_by(openid: cache_openid)
-    @friend_dones = Todo.where(receiver_id: params[:friend_id], user_id: @user.id, is_finish: true).limit(50).order(updated_at: :desc)
+    @friend_dones = Todo.where(receiver_id: params[:friend_id], user_id: @user.id, is_finish: true).order(updated_at: :desc).first(50)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
     text = '{"friend_dones": [ '
@@ -1249,6 +1249,11 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     helps = Todo.where(user_id: @user.id, is_finish: false).or(Todo.where(receiver_id: @user.id, is_finish: false)).pluck(:id)
+    # helps_1 = Todo.wehre(user_id: @user.id, is_finish: false).pluck(:id)
+    # helps_2 = Todo.wehre(receiver_id: @user.id, is_finish: false).pluck(:id)
+    # helps_3 = Discussion.where(user_id: @user.id).pluck(:todo_id).uniq
+    # helps = helps_1 + helps_2 + helps_3
+    # helps.uniq!
     @discussions = Discussion.where(todo_id: helps).where.not(user_id: @user.id).order(id: :desc).first(500)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
