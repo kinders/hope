@@ -51,7 +51,9 @@ Rails.application.routes.draw do
   post 'delete_award', to: 'wechat_little_app#delete_award'
 
   get 'hot_discussions', to: 'wechat_little_app#hot_discussions'
+  post 'add_friends_to_grouptodo', to: 'wechat_little_app#add_friends_to_grouptodo'
   # For details on the DSL available within this file, see http://guides.rubyonrails.org/routing.html
 
   get '*other', to: 'wechat_little_app#hello'
+  post '*other', to: 'wechat_little_app#hello'
 end

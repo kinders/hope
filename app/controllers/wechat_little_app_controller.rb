@@ -192,7 +192,7 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @user = User.find_by(openid: cache_openid)
-    @dones = Todo.where(receiver_id: @user.id, is_finish: true).where.not(user_id: @user.id).order(id: :desc).first(50)
+    @dones = Todo.where(receiver_id: @user.id, is_finish: true).where.not(user_id: @user.id).order(id: :desc).first(100)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
     text = '{"dones": [ '
@@ -258,7 +258,7 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @user = User.find_by(openid: cache_openid)
-    @helpeds = Todo.where(user_id: @user.id, is_finish: true).order(updated_at: :desc).first(50)
+    @helpeds = Todo.where(user_id: @user.id, is_finish: true).order(updated_at: :desc).first(100)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
     text = '{"helpeds": [ '
@@ -468,7 +468,7 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @user = User.find_by(openid: cache_openid)
-    @friend_dones = Todo.where(receiver_id: params[:friend_id], user_id: @user.id, is_finish: true).order(updated_at: :desc).first(50)
+    @friend_dones = Todo.where(receiver_id: params[:friend_id], user_id: @user.id, is_finish: true).order(updated_at: :desc).first(100)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
     text = '{"friend_dones": [ '
@@ -891,7 +891,7 @@ class WechatLittleAppController < ApplicationController
     @user = User.find_by(openid: cache_openid)
     @grouptodo = Grouptodo.find_by(id: params[:grouptodo_id], user_id: @user.id)
     if @grouptodo
-      Todo.where(grouptodo_id: params[:grouptodo_id]).update_all(is_finish: true)
+      Todo.where(grouptodo_id: params[:grouptodo_id]).update_all(is_finish: true, updated_at: Time.now)
       @grouptodo.update(is_finish: true)
       render json: {result_code: 't'}
     else
@@ -954,7 +954,7 @@ class WechatLittleAppController < ApplicationController
       return
     end
     @todos = Todo.where(grouptodo_id: params[:grouptodo_id], user_id: @user.id, receiver_id: params[:friends_id].split('_'))
-    if @todos.any? && @todos.update_all(is_finish: true)
+    if @todos.any? && @todos.update_all(is_finish: true, updated_at: Time.now)
       render json: {result_code: 't'}
     else
       render json: {result_code: 'f', message: "服务器拒绝关闭任务"}
@@ -1274,6 +1274,23 @@ class WechatLittleAppController < ApplicationController
     text << ']}'
     render plain: text
   #=end
+  end
+
+  # post add_friends_to_grouptodo,将遗漏的队员添加到组任务中。
+  # params: token, grouptodo_id, friends_ids
+  def add_friends_to_grouptodo
+    # 检查 token 是否过期
+    cache_openid = $redis.get(params[:token])
+    unless cache_openid
+      render json: {result_code: "bad token"}
+      return
+    end
+    @user = User.find_by(openid: cache_openid)
+    @grouptodo = Grouptodo.find(params[:grouptodo_id])
+    params[:friends_id].to_a.each{ |f|
+      @todo = Todo.create(user_id: @user.id, receiver_id: f.to_i, content: @grouptodo.content, grouptodo_id: @grouptodo.id, is_finish: false)
+    }
+    render json: { result_code: 't' }
   end
 
 end
