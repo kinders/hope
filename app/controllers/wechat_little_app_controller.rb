@@ -1287,8 +1287,9 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @grouptodo = Grouptodo.find(params[:grouptodo_id])
+    @grouptodo.update(is_finish: false) if @grouptodo.is_finish == true
     params[:friends_id].to_a.each{ |f|
-      @todo = Todo.create(user_id: @user.id, receiver_id: f.to_i, content: @grouptodo.content, grouptodo_id: @grouptodo.id, is_finish: false)
+      Todo.create(user_id: @user.id, receiver_id: f.to_i, content: @grouptodo.content, grouptodo_id: @grouptodo.id, is_finish: false)
     }
     render json: { result_code: 't' }
   end
