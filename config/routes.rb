@@ -56,4 +56,5 @@ Rails.application.routes.draw do
 
   get '*other', to: 'wechat_little_app#hello'
   post '*other', to: 'wechat_little_app#hello'
+  post '/', to: 'wechat_little_app#hello'
 end

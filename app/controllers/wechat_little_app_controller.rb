@@ -2,8 +2,8 @@ class WechatLittleAppController < ApplicationController
 
   # get hello 首页，可用于测试服务是否正常
   def hello
-    render plain: ''
-    #render plain: '您好！欢迎使用“希望协作”小程序'
+    #render plain: ''
+    render plain: '您好！欢迎使用“希望协作”小程序'
   end
 
   # post login 登录系统，取出token
@@ -1168,10 +1168,12 @@ class WechatLittleAppController < ApplicationController
     end
     @user = User.find_by(openid: cache_openid)
     @count = Award.where(user_id: @user.id).count
+    @count_finished = Todo.where(receiver_id: @user.id, is_finish: true).count
+    @count_unfinish = Todo.where(receiver_id: @user.id, is_finish: false).count
     @awards = Award.where(user_id: @user.id).order(id: :desc).first(100)
     # 适应腾讯X5浏览的[text/html]request，删除这段代码可以生成默认的json数据
 #=begin
-    text = '{"count": ' + @count.to_s + ', "awards": [ '
+    text = '{"count_finished": ' + @count_finished.to_s + ', "count_unfinish": ' + @count_unfinish.to_s + ', "count": ' + @count.to_s + ', "awards": [ '
     @awards.each do |award|
       text << '{'
       text << '"id": ' + award.id.to_s + ", "
@@ -1260,6 +1262,7 @@ class WechatLittleAppController < ApplicationController
     text = '{"hot_discussions": [ '
     @discussions.each do |discussion|
       text << '{'
+      text << '"id": ' + discussion.id.to_s + ', '
       text << '"todo_id": ' + discussion.todo_id.to_s + ', '
       text << '"content": ' + discussion.content.inspect + ', '
       text << '"user_id": ' + discussion.user_id.to_s + ', '
